@@ -79,11 +79,18 @@ function initDB(): void {
         region TEXT,
         is_online INTEGER DEFAULT 1,
         current_page TEXT DEFAULT 'landing',
+        status TEXT DEFAULT 'viewing',
         last_activity DATETIME,
         student_id INTEGER DEFAULT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (student_id) REFERENCES students(id)
     )");
+
+    // Add status column if missing (upgrade path)
+    try {
+        $db->exec("ALTER TABLE visitors ADD COLUMN status TEXT DEFAULT 'viewing'");
+    } catch (PDOException $e) {}
+
 
     // Add visitor_id column to students if not exists
     try {
