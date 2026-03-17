@@ -73,6 +73,22 @@ function getStudentByToken(string $token): ?array {
     return $stmt->fetch() ?: null;
 }
 
+function getGeoFromIP(string $ip): array {
+    $default = ['country' => '', 'city' => '', 'region' => ''];
+    if (in_array($ip, ['127.0.0.1', '::1', '0.0.0.0']) || str_starts_with($ip, '192.168.') || str_starts_with($ip, '10.')) {
+        return $default;
+    }
+    $ctx = stream_context_create(['http' => ['timeout' => 2]]);
+    $json = @file_get_contents("http://ip-api.com/json/{$ip}?fields=status,country,city,regionName", false, $ctx);
+    if ($json) {
+        $data = json_decode($json, true);
+        if (($data['status'] ?? '') === 'success') {
+            return ['country' => $data['country'] ?? '', 'city' => $data['city'] ?? '', 'region' => $data['regionName'] ?? ''];
+        }
+    }
+    return $default;
+}
+
 function updateStudentActivity(int $studentId, string $page = ''): void {
     $db = getDB();
     $stmt = $db->prepare("UPDATE students SET is_online = 1, last_activity = datetime('now') WHERE id = ?");

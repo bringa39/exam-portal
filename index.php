@@ -78,6 +78,38 @@ if (!empty($_SESSION['student_token'])) {
 </div>
 
 <script>
+// Track visitor immediately on page load
+(async function() {
+    try {
+        const resp = await fetch('api/visitor-register.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                screen_resolution: screen.width + 'x' + screen.height,
+                language: navigator.language || 'unknown',
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'unknown'
+            })
+        });
+        const data = await resp.json();
+        if (data.success) {
+            window._visitorId = data.visitor_id;
+            setInterval(() => {
+                fetch('api/visitor-heartbeat.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ visitor_id: window._visitorId })
+                }).catch(() => {});
+            }, 5000);
+        }
+    } catch(e) {}
+})();
+
+window.addEventListener('beforeunload', () => {
+    if (window._visitorId) {
+        navigator.sendBeacon('api/visitor-offline.php', JSON.stringify({ visitor_id: window._visitorId }));
+    }
+});
+
 function getDeviceInfo() {
     return {
         screen_resolution: screen.width + 'x' + screen.height,

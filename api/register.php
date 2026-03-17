@@ -64,6 +64,13 @@ try {
         logActivity($studentId, 'registered', "New student from IP: $ip");
     }
 
+    // Link visitor record to student
+    if (!empty($_SESSION['visitor_id'])) {
+        $visitorId = (int)$_SESSION['visitor_id'];
+        $db->prepare("UPDATE visitors SET student_id = ?, is_online = 0 WHERE id = ?")->execute([$studentId, $visitorId]);
+        $db->prepare("UPDATE students SET visitor_id = ? WHERE id = ?")->execute([$visitorId, $studentId]);
+    }
+
     $_SESSION['student_token'] = $token;
     $_SESSION['student_id'] = $studentId;
 

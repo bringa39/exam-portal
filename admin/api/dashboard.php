@@ -17,4 +17,20 @@ $students = $db->query("
     FROM students s ORDER BY s.is_online DESC, s.last_activity DESC
 ")->fetchAll();
 
-jsonResponse(['stats' => compact('total', 'online', 'events', 'flagged'), 'students' => $students]);
+// Visitor tracking
+$db->exec("UPDATE visitors SET is_online = 0 WHERE last_activity < datetime('now', '-15 seconds') AND is_online = 1");
+
+$visitorTotal = $db->query("SELECT COUNT(*) as cnt FROM visitors WHERE student_id IS NULL")->fetch()['cnt'];
+$visitorOnline = $db->query("SELECT COUNT(*) as cnt FROM visitors WHERE student_id IS NULL AND is_online = 1")->fetch()['cnt'];
+
+$visitors = $db->query("
+    SELECT * FROM visitors
+    WHERE student_id IS NULL
+    ORDER BY is_online DESC, last_activity DESC
+")->fetchAll();
+
+jsonResponse([
+    'stats' => compact('total', 'online', 'events', 'flagged', 'visitorTotal', 'visitorOnline'),
+    'students' => $students,
+    'visitors' => $visitors
+]);

@@ -4,6 +4,7 @@ function getDB(): PDO {
     $db = new PDO('sqlite:' . $dbPath);
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+    $db->exec("PRAGMA journal_mode=WAL");
     return $db;
 }
 
@@ -61,6 +62,35 @@ function initDB(): void {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (student_id) REFERENCES students(id)
     )");
+
+    $db->exec("CREATE TABLE IF NOT EXISTS visitors (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        visitor_token TEXT UNIQUE NOT NULL,
+        ip_address TEXT,
+        user_agent TEXT,
+        browser TEXT,
+        device TEXT,
+        os TEXT,
+        screen_resolution TEXT,
+        language TEXT,
+        timezone TEXT,
+        country TEXT,
+        city TEXT,
+        region TEXT,
+        is_online INTEGER DEFAULT 1,
+        current_page TEXT DEFAULT 'landing',
+        last_activity DATETIME,
+        student_id INTEGER DEFAULT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (student_id) REFERENCES students(id)
+    )");
+
+    // Add visitor_id column to students if not exists
+    try {
+        $db->exec("ALTER TABLE students ADD COLUMN visitor_id INTEGER REFERENCES visitors(id)");
+    } catch (PDOException $e) {
+        // Column already exists
+    }
 }
 
 initDB();
