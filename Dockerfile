@@ -7,6 +7,10 @@ RUN apk add --no-cache nginx sqlite-dev \
 # Copy nginx config
 COPY docker/nginx.conf /etc/nginx/http.d/default.conf
 
+# Disable display_errors in production
+RUN echo "display_errors=Off" > /usr/local/etc/php/conf.d/production.ini \
+    && echo "log_errors=On" >> /usr/local/etc/php/conf.d/production.ini
+
 # Copy application files
 COPY . /var/www/html
 WORKDIR /var/www/html
