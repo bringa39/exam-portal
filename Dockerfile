@@ -1,3 +1,4 @@
+# Build v4 - 2026-03-17
 FROM php:8.3-fpm-alpine
 
 # Install nginx and required extensions
