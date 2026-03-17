@@ -60,10 +60,14 @@ function jsonResponse(array $data, int $code = 200): void {
 
 function requireAdmin(): void {
     if (session_status() !== PHP_SESSION_ACTIVE) {
-        session_start();
+        @session_start();
     }
     if (empty($_SESSION['is_admin'])) {
-        header('Location: login.php');
+        if (!headers_sent()) {
+            header('Location: login.php');
+        } else {
+            echo '<script>window.location.href="login.php";</script>';
+        }
         exit;
     }
 }
