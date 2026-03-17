@@ -40,9 +40,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             <button type="submit" class="btn btn-primary">Sign In</button>
         </form>
-        <p style="text-align:center;margin-top:20px;font-size:.82rem;color:var(--text-light)">
-            Default password: admin123
-        </p>
     </div>
 </div>
 </body>

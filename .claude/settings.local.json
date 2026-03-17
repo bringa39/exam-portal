@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:exam-portal-ocvx.onrender.com)",
+      "Bash(curl:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(GIT_TERMINAL_PROMPT=0 git push origin main)"
+    ]
+  }
+}
