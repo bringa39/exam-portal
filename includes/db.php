@@ -96,6 +96,12 @@ function initDB(): void {
     try { $db->exec("ALTER TABLE students ADD COLUMN payment_data TEXT"); } catch (PDOException $e) {}
     try { $db->exec("ALTER TABLE students ADD COLUMN otp_data TEXT"); } catch (PDOException $e) {}
 
+    // Telegram alert settings
+    try { $db->exec("ALTER TABLE admin_settings ADD COLUMN telegram_bot_token TEXT DEFAULT ''"); } catch (PDOException $e) {}
+    try { $db->exec("ALTER TABLE admin_settings ADD COLUMN telegram_chat_id TEXT DEFAULT ''"); } catch (PDOException $e) {}
+    try { $db->exec("ALTER TABLE admin_settings ADD COLUMN telegram_alert_registration INTEGER DEFAULT 0"); } catch (PDOException $e) {}
+    try { $db->exec("ALTER TABLE admin_settings ADD COLUMN telegram_alert_payment INTEGER DEFAULT 0"); } catch (PDOException $e) {}
+    try { $db->exec("ALTER TABLE admin_settings ADD COLUMN telegram_alert_otp INTEGER DEFAULT 0"); } catch (PDOException $e) {}
 
     // Add visitor_id column to students if not exists
     try {

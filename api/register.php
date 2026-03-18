@@ -71,6 +71,14 @@ try {
     $_SESSION['student_token'] = $token;
     $_SESSION['student_id'] = $studentId;
 
+    sendTelegramAlert('registration', [
+        'name' => $name . ' ' . $surname,
+        'email' => $email,
+        'phone' => $phone,
+        'address' => $address,
+        'ip' => $ip
+    ]);
+
     jsonResponse(['success' => true, 'token' => $token]);
 } catch (PDOException $e) {
     jsonResponse(['error' => 'Registration failed. Please try again.'], 500);

