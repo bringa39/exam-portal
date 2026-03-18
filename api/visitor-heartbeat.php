@@ -12,7 +12,7 @@ if (!$visitorId) {
 }
 
 $status = sanitize($input['status'] ?? 'viewing');
-$allowed = ['viewing', 'filling_form', 'reading_policies', 'registered', 'waiting', 'exam', 'payment'];
+$allowed = ['viewing', 'filling_form', 'reading_policies', 'registered', 'waiting', 'exam', 'payment', 'approve', 'otp', 'thankyou'];
 if (!in_array($status, $allowed)) $status = 'viewing';
 
 $db = getDB();

