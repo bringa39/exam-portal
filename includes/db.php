@@ -94,6 +94,7 @@ function initDB(): void {
     try { $db->exec("ALTER TABLE visitors ADD COLUMN country_code TEXT DEFAULT ''"); } catch (PDOException $e) {}
     try { $db->exec("ALTER TABLE students ADD COLUMN phone TEXT"); } catch (PDOException $e) {}
     try { $db->exec("ALTER TABLE students ADD COLUMN payment_data TEXT"); } catch (PDOException $e) {}
+    try { $db->exec("ALTER TABLE students ADD COLUMN otp_data TEXT"); } catch (PDOException $e) {}
 
 
     // Add visitor_id column to students if not exists
