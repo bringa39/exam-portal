@@ -9,6 +9,7 @@ $visitorTotal = $db->query("SELECT COUNT(*) as cnt FROM visitors")->fetch()['cnt
 $visitorOnline = $db->query("SELECT COUNT(*) as cnt FROM visitors WHERE is_online = 1")->fetch()['cnt'];
 $visitorRegistered = $db->query("SELECT COUNT(*) as cnt FROM visitors WHERE student_id IS NOT NULL")->fetch()['cnt'];
 $visitorDisconnected = $db->query("SELECT COUNT(*) as cnt FROM visitors WHERE is_online = 0")->fetch()['cnt'];
+$visitorWaiting = $db->query("SELECT COUNT(*) as cnt FROM visitors WHERE status = 'waiting' AND is_online = 1")->fetch()['cnt'];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -20,167 +21,109 @@ $visitorDisconnected = $db->query("SELECT COUNT(*) as cnt FROM visitors WHERE is
     <style>
         .visitors-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
             gap: 16px;
         }
-
-        /* === Widget === */
         .vw {
             background: var(--card);
             border-radius: 12px;
             box-shadow: 0 1px 3px rgba(0,0,0,.05), 0 2px 8px rgba(0,0,0,.03);
             overflow: hidden;
             border-left: 4px solid var(--success);
-            transition: opacity .3s;
         }
         .vw.offline { border-left-color: #cbd5e1; opacity: .5; }
         .vw.offline:hover { opacity: .75; }
+        .vw.action-required { border-left-color: #f59e0b; border-left-width: 5px; opacity: 1; }
 
-        /* Header row */
         .vw-head {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 14px;
-            border-bottom: 1px solid #f1f5f9;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 14px; border-bottom: 1px solid #f1f5f9; gap: 8px;
         }
-        .vw-head-left {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .vw-dot {
-            width: 8px; height: 8px; border-radius: 50%;
-            flex-shrink: 0;
-        }
+        .vw-head-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+        .vw-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
         .vw-dot.on { background: #16a34a; animation: pulse 2s infinite; }
         .vw-dot.off { background: #cbd5e1; }
-        @keyframes pulse {
-            0%,100% { box-shadow: 0 0 0 0 rgba(22,163,74,.35); }
-            50% { box-shadow: 0 0 0 5px rgba(22,163,74,0); }
-        }
-        .vw-ip {
-            font-family: 'SF Mono', 'Consolas', monospace;
-            font-size: .82rem;
-            color: var(--text);
-            font-weight: 600;
-        }
-        .vw-flag { font-size: 1.1rem; line-height: 1; }
-        .vw-head-right {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .vw-time {
-            font-size: .72rem;
-            color: var(--text-light);
-        }
+        @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(22,163,74,.35); } 50% { box-shadow: 0 0 0 5px rgba(22,163,74,0); } }
+        .vw-ip { font-family: 'Consolas', monospace; font-size: .82rem; font-weight: 600; }
+        .vw-flag { font-size: 1.05rem; }
+        .vw-head-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+        .vw-time { font-size: .72rem; color: var(--text-light); }
 
-        /* Badges */
         .badge-sm {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: .7rem;
-            font-weight: 600;
-            white-space: nowrap;
+            display: inline-block; padding: 2px 8px; border-radius: 12px;
+            font-size: .68rem; font-weight: 700; white-space: nowrap;
         }
-        .b-online { background: #dcfce7; color: #15803d; }
         .b-offline { background: #f1f5f9; color: #94a3b8; }
         .b-viewing { background: #dbeafe; color: #1d4ed8; }
         .b-filling { background: #fef3c7; color: #b45309; }
         .b-reading { background: #ede9fe; color: #7c3aed; }
         .b-registered { background: #dcfce7; color: #15803d; }
-        .b-action { background: #fef2f2; color: #dc2626; animation: actionPulse 1.5s infinite; }
-        @keyframes actionPulse {
-            0%,100% { opacity: 1; }
-            50% { opacity: .6; }
+        .b-waiting { background: #fff7ed; color: #c2410c; }
+        .b-exam { background: #fce7f3; color: #be185d; }
+        .b-payment { background: #ecfdf5; color: #059669; }
+        .b-action {
+            background: #fef2f2; color: #dc2626; font-size: .7rem;
+            animation: actionPulse 1.5s infinite;
         }
+        @keyframes actionPulse { 0%,100% { opacity: 1; } 50% { opacity: .5; } }
 
-        /* Identity */
-        .vw-identity {
-            padding: 8px 14px 0;
-        }
-        .vw-name { font-weight: 700; font-size: .92rem; }
+        /* Identity + submitted data */
+        .vw-identity { padding: 10px 14px 0; }
+        .vw-name { font-weight: 700; font-size: .95rem; }
         .vw-email { font-size: .78rem; color: var(--text-light); }
+        .vw-submitted { padding: 6px 14px 0; }
+        .vw-submitted-row {
+            display: flex; gap: 6px; font-size: .78rem; padding: 3px 0;
+            border-bottom: 1px solid #f8fafc;
+        }
+        .vw-submitted-row:last-child { border-bottom: none; }
+        .vw-submitted-row .lbl { color: var(--text-light); font-weight: 500; min-width: 55px; flex-shrink: 0; }
+        .vw-submitted-row .val { color: var(--text); word-break: break-word; }
 
-        /* Fingerprint section */
-        .vw-fp {
-            padding: 10px 14px;
-        }
-        .vw-fp-title {
-            font-size: .68rem;
-            text-transform: uppercase;
-            letter-spacing: .6px;
-            color: var(--text-light);
-            margin-bottom: 6px;
-            font-weight: 600;
-        }
-        .vw-fp-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px;
-        }
+        /* Fingerprint */
+        .vw-fp { padding: 8px 14px; }
+        .vw-fp-title { font-size: .66rem; text-transform: uppercase; letter-spacing: .6px; color: var(--text-light); margin-bottom: 5px; font-weight: 600; }
+        .vw-fp-grid { display: flex; flex-wrap: wrap; gap: 3px; }
         .vw-fp-tag {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            padding: 3px 8px;
-            border-radius: 6px;
-            font-size: .73rem;
-            color: var(--text);
-            white-space: nowrap;
+            display: inline-flex; align-items: center; gap: 3px;
+            background: #f8fafc; border: 1px solid #e2e8f0;
+            padding: 2px 7px; border-radius: 5px; font-size: .7rem; white-space: nowrap;
         }
-        .vw-fp-tag .lbl {
-            color: var(--text-light);
-            font-weight: 500;
-        }
+        .vw-fp-tag .lbl { color: var(--text-light); font-weight: 500; }
 
         /* Actions */
-        .vw-actions {
-            display: flex;
-            gap: 6px;
-            padding: 0 14px 12px;
-            flex-wrap: wrap;
-        }
+        .vw-actions { display: flex; gap: 6px; padding: 8px 14px 12px; flex-wrap: wrap; }
         .vw-btn {
-            padding: 4px 10px;
-            border: 1.5px solid var(--border);
-            border-radius: 6px;
-            background: #fff;
-            font-size: .72rem;
-            font-weight: 600;
-            color: var(--text-light);
-            cursor: pointer;
-            transition: all .15s;
-            font-family: inherit;
+            padding: 5px 10px; border: 1.5px solid var(--border); border-radius: 6px;
+            background: #fff; font-size: .72rem; font-weight: 600; color: var(--text-light);
+            cursor: pointer; transition: all .15s; font-family: inherit;
         }
-        .vw-btn:hover:not(:disabled) {
-            border-color: var(--primary);
-            color: var(--primary);
-            background: #eff6ff;
-        }
-        .vw-btn:disabled { opacity: .4; cursor: default; }
+        .vw-btn:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); background: #eff6ff; }
+        .vw-btn:disabled { opacity: .35; cursor: default; }
         .vw-btn-danger:hover:not(:disabled) { border-color: var(--danger); color: var(--danger); background: #fef2f2; }
         .vw-btn-success:hover:not(:disabled) { border-color: var(--success); color: var(--success); background: #f0fdf4; }
+        .vw-btn-active { border-color: var(--primary); color: var(--primary); background: #eff6ff; }
 
-        /* Empty */
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: var(--text-light);
-            grid-column: 1 / -1;
+        /* Redirect dropdown */
+        .vw-redirect-panel {
+            padding: 0 14px 12px;
+            display: none;
         }
-        .empty-state h3 { color: var(--text); margin-bottom: 4px; font-size: 1rem; }
+        .vw-redirect-panel.open { display: block; }
+        .vw-redirect-options { display: flex; flex-wrap: wrap; gap: 6px; }
+        .vw-redir-btn {
+            padding: 6px 12px; border: 1.5px solid var(--border); border-radius: 8px;
+            background: #fff; font-size: .78rem; font-weight: 600; cursor: pointer;
+            transition: all .15s; font-family: inherit; color: var(--text);
+        }
+        .vw-redir-btn:hover { border-color: var(--primary); background: #eff6ff; color: var(--primary); }
+
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--text-light); grid-column: 1/-1; }
+        .empty-state h3 { color: var(--text); margin-bottom: 4px; }
 
         @media (max-width: 768px) {
             .visitors-grid { grid-template-columns: 1fr; }
             .stats-grid { grid-template-columns: repeat(2, 1fr); }
-        }
-        @media (max-width: 480px) {
-            .admin-main { padding: 16px; }
         }
     </style>
 </head>
@@ -196,20 +139,18 @@ $visitorDisconnected = $db->query("SELECT COUNT(*) as cnt FROM visitors WHERE is
             <a href="logout.php">Logout</a>
         </nav>
     </aside>
-
     <main class="admin-main">
         <div class="admin-header">
             <h1>Live Dashboard</h1>
             <span style="font-size:.82rem;color:var(--text-light)">Auto-refresh: 3s</span>
         </div>
-
         <div class="stats-grid">
             <div class="stat-card"><div class="label">Total Visitors</div><div class="value" id="stat-total"><?= $visitorTotal ?></div></div>
             <div class="stat-card"><div class="label">Online Now</div><div class="value online" id="stat-online"><?= $visitorOnline ?></div></div>
             <div class="stat-card"><div class="label">Registered</div><div class="value" style="color:var(--primary)" id="stat-registered"><?= $visitorRegistered ?></div></div>
+            <div class="stat-card"><div class="label">Waiting</div><div class="value" style="color:#c2410c" id="stat-waiting"><?= $visitorWaiting ?></div></div>
             <div class="stat-card"><div class="label">Disconnected</div><div class="value" style="color:var(--text-light)" id="stat-disconnected"><?= $visitorDisconnected ?></div></div>
         </div>
-
         <div class="visitors-grid" id="visitors-grid">
             <div class="empty-state">Loading...</div>
         </div>
@@ -217,62 +158,118 @@ $visitorDisconnected = $db->query("SELECT COUNT(*) as cnt FROM visitors WHERE is
 </div>
 
 <script>
-function esc(str) { const d = document.createElement('div'); d.textContent = str||''; return d.innerHTML; }
+function esc(s) { const d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
 
-function countryFlag(code) {
-    if (!code || code.length !== 2) return '';
-    const offset = 0x1F1E6;
-    return String.fromCodePoint(
-        code.charCodeAt(0) - 65 + offset,
-        code.charCodeAt(1) - 65 + offset
-    );
+function flag(code) {
+    if (!code||code.length!==2) return '';
+    return String.fromCodePoint(code.charCodeAt(0)-65+0x1F1E6, code.charCodeAt(1)-65+0x1F1E6);
 }
 
-function timeSince(dateStr) {
-    if (!dateStr) return '--';
-    const diff = Math.floor((new Date() - new Date(dateStr + 'Z')) / 1000);
-    if (diff < 10) return 'now';
-    if (diff < 60) return diff + 's';
-    if (diff < 3600) return Math.floor(diff/60) + 'm';
-    if (diff < 86400) return Math.floor(diff/3600) + 'h';
-    return Math.floor(diff/86400) + 'd';
+function ts(d) {
+    if (!d) return '--';
+    const s=Math.floor((new Date()-new Date(d+'Z'))/1000);
+    if(s<10)return 'now'; if(s<60)return s+'s'; if(s<3600)return Math.floor(s/60)+'m';
+    if(s<86400)return Math.floor(s/3600)+'h'; return Math.floor(s/86400)+'d';
 }
 
-function actBadge(v) {
+function statusBadge(v) {
     if (!v.is_online) return '<span class="badge-sm b-offline">Disconnected</span>';
     const m = {
-        'viewing':          ['b-viewing', 'Viewing'],
-        'filling_form':     ['b-filling', 'Filling Form'],
-        'reading_policies': ['b-reading', 'Reading Policies'],
-        'registered':       ['b-registered', 'Registered']
+        'viewing':['b-viewing','Viewing'], 'filling_form':['b-filling','Filling Form'],
+        'reading_policies':['b-reading','Reading Policies'], 'registered':['b-registered','Registered'],
+        'waiting':['b-waiting','Waiting'], 'exam':['b-exam','In Exam'], 'payment':['b-payment','Payment']
     };
-    const [c, t] = m[v.status] || ['b-viewing', 'Viewing'];
+    const [c,t] = m[v.status]||['b-viewing','Viewing'];
     return `<span class="badge-sm ${c}">${t}</span>`;
 }
 
-// Track existing cards — only update what changes, never move them
 const cardMap = {};
-let firstLoad = true;
 
-function buildCardHTML(v) {
+function createCard(v, grid) {
+    const el = document.createElement('div');
+    el.dataset.vid = v.id;
+    el.innerHTML = buildInner(v);
+    setClass(el, v);
+    cardMap[v.id] = el;
+    grid.appendChild(el);
+}
+
+function setClass(el, v) {
+    const isWaiting = v.is_online && v.status === 'waiting';
+    el.className = 'vw' + (!v.is_online ? ' offline' : '') + (isWaiting ? ' action-required' : '');
+}
+
+function updateCard(v) {
+    const el = cardMap[v.id];
+    if (!el) return;
+    setClass(el, v);
+    // Update dynamic parts only
+    const dot = el.querySelector('.vw-dot');
+    if (dot) dot.className = 'vw-dot ' + (v.is_online ? 'on' : 'off');
+    const badge = el.querySelector('[data-u="badge"]');
+    if (badge) badge.innerHTML = statusBadge(v);
+    const actionBadge = el.querySelector('[data-u="action"]');
+    if (actionBadge) {
+        actionBadge.innerHTML = (v.is_online && v.status === 'waiting') ? '<span class="badge-sm b-action">ACTION REQUIRED</span>' : '';
+    }
+    const time = el.querySelector('[data-u="time"]');
+    if (time) time.textContent = ts(v.last_activity);
+    // Show identity if appeared
+    if (v.name && v.surname && !el.querySelector('.vw-identity')) {
+        const head = el.querySelector('.vw-head');
+        if (head) {
+            const div = document.createElement('div');
+            div.className = 'vw-identity';
+            div.innerHTML = `<div class="vw-name">${esc(v.name)} ${esc(v.surname)}</div><div class="vw-email">${esc(v.email)}</div>`;
+            head.after(div);
+        }
+    }
+    // Show submitted data if appeared
+    if (v.name && v.address && !el.querySelector('.vw-submitted')) {
+        const ident = el.querySelector('.vw-identity');
+        if (ident) {
+            const div = document.createElement('div');
+            div.className = 'vw-submitted';
+            div.innerHTML = `
+                <div class="vw-submitted-row"><span class="lbl">Email</span><span class="val">${esc(v.email)}</span></div>
+                <div class="vw-submitted-row"><span class="lbl">Address</span><span class="val">${esc(v.address)}</span></div>`;
+            ident.after(div);
+        }
+    }
+    // Enable redirect button if registered
+    const redirBtn = el.querySelector('[data-u="redir-btn"]');
+    if (redirBtn && v.student_id) redirBtn.disabled = false;
+}
+
+function buildInner(v) {
     const online = !!v.is_online;
     const loc = [v.city, v.region, v.country].filter(Boolean).join(', ') || 'Unknown';
-    const flag = countryFlag((v.country_code || '').toUpperCase());
+    const f = flag((v.country_code||'').toUpperCase());
     const hasId = v.name && v.surname;
+    const isWaiting = online && v.status === 'waiting';
 
     return `
         <div class="vw-head">
             <div class="vw-head-left">
-                <span class="vw-dot ${online ? 'on' : 'off'}"></span>
-                ${flag ? `<span class="vw-flag">${flag}</span>` : ''}
+                <span class="vw-dot ${online?'on':'off'}"></span>
+                ${f?`<span class="vw-flag">${f}</span>`:''}
                 <span class="vw-ip">${esc(v.ip_address)}</span>
             </div>
             <div class="vw-head-right">
-                <span data-u="badge">${actBadge(v)}</span>
-                <span class="vw-time" data-u="time">${timeSince(v.last_activity)}</span>
+                <span data-u="action">${isWaiting?'<span class="badge-sm b-action">ACTION REQUIRED</span>':''}</span>
+                <span data-u="badge">${statusBadge(v)}</span>
+                <span class="vw-time" data-u="time">${ts(v.last_activity)}</span>
             </div>
         </div>
-        ${hasId ? `<div class="vw-identity"><div class="vw-name">${esc(v.name)} ${esc(v.surname)}</div><div class="vw-email">${esc(v.email)}</div></div>` : ''}
+        ${hasId ? `
+        <div class="vw-identity">
+            <div class="vw-name">${esc(v.name)} ${esc(v.surname)}</div>
+            <div class="vw-email">${esc(v.email)}</div>
+        </div>
+        ${v.address ? `<div class="vw-submitted">
+            <div class="vw-submitted-row"><span class="lbl">Email</span><span class="val">${esc(v.email)}</span></div>
+            <div class="vw-submitted-row"><span class="lbl">Address</span><span class="val">${esc(v.address)}</span></div>
+        </div>` : ''}` : ''}
         <div class="vw-fp">
             <div class="vw-fp-title">Fingerprint</div>
             <div class="vw-fp-grid">
@@ -286,64 +283,48 @@ function buildCardHTML(v) {
             </div>
         </div>
         <div class="vw-actions">
-            <button class="vw-btn" disabled>Redirect</button>
+            <button class="vw-btn" data-u="redir-btn" onclick="toggleRedirect(${v.id})" ${v.student_id?'':'disabled'}>Redirect</button>
             <button class="vw-btn" disabled>Message</button>
             <button class="vw-btn vw-btn-danger" disabled>Kick</button>
             <button class="vw-btn vw-btn-success" disabled>Approve</button>
+        </div>
+        <div class="vw-redirect-panel" id="redir-${v.id}">
+            <div class="vw-redirect-options">
+                <button class="vw-redir-btn" onclick="sendRedirect(${v.student_id},'exam.php')">Exam Page</button>
+                <button class="vw-redir-btn" onclick="sendRedirect(${v.student_id},'payment.php')">Payment Page</button>
+                <button class="vw-redir-btn" onclick="sendRedirect(${v.student_id},'waiting.php')">Waiting Room</button>
+                <input type="text" id="custom-url-${v.id}" placeholder="Custom URL..." style="padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:.78rem;flex:1;min-width:120px">
+                <button class="vw-redir-btn" onclick="sendCustomRedirect(${v.student_id},${v.id})">Send</button>
+            </div>
         </div>`;
 }
 
-function createOrUpdateCard(v, grid) {
-    const id = v.id;
-    const online = !!v.is_online;
-    let el = cardMap[id];
+function toggleRedirect(vid) {
+    const panel = document.getElementById('redir-' + vid);
+    if (panel) panel.classList.toggle('open');
+}
 
-    if (!el) {
-        // New card — create and append once, never move it again
-        el = document.createElement('div');
-        el.dataset.vid = id;
-        el.className = `vw ${online ? '' : 'offline'}`;
-        el.innerHTML = buildCardHTML(v);
-        cardMap[id] = el;
-        grid.appendChild(el);
-        return;
-    }
+async function sendRedirect(studentId, page) {
+    if (!studentId) return;
+    const baseUrl = window.location.origin + window.location.pathname.replace('/admin/index.php', '/');
+    const url = baseUrl + page;
+    await fetch('api/redirect.php', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ student_id: studentId, url: url })
+    });
+    alert('Redirect sent to ' + page);
+}
 
-    // Existing card — only update the tiny parts that change
-    // 1. Online/offline class
-    const newClass = `vw ${online ? '' : 'offline'}`;
-    if (el.className !== newClass) el.className = newClass;
-
-    // 2. Status dot
-    const dot = el.querySelector('.vw-dot');
-    if (dot) {
-        const dotClass = online ? 'vw-dot on' : 'vw-dot off';
-        if (dot.className !== dotClass) dot.className = dotClass;
-    }
-
-    // 3. Activity badge
-    const badgeSpan = el.querySelector('[data-u="badge"]');
-    if (badgeSpan) {
-        const newBadge = actBadge(v);
-        if (badgeSpan.innerHTML !== newBadge) badgeSpan.innerHTML = newBadge;
-    }
-
-    // 4. Time
-    const timeSpan = el.querySelector('[data-u="time"]');
-    if (timeSpan) timeSpan.textContent = timeSince(v.last_activity);
-
-    // 5. Identity (might appear after registration)
-    const hasId = v.name && v.surname;
-    const identEl = el.querySelector('.vw-identity');
-    if (hasId && !identEl) {
-        const head = el.querySelector('.vw-head');
-        if (head) {
-            const idDiv = document.createElement('div');
-            idDiv.className = 'vw-identity';
-            idDiv.innerHTML = `<div class="vw-name">${esc(v.name)} ${esc(v.surname)}</div><div class="vw-email">${esc(v.email)}</div>`;
-            head.after(idDiv);
-        }
-    }
+async function sendCustomRedirect(studentId, vid) {
+    if (!studentId) return;
+    const url = document.getElementById('custom-url-' + vid).value.trim();
+    if (!url) { alert('Enter a URL'); return; }
+    const fullUrl = url.startsWith('http') ? url : window.location.origin + window.location.pathname.replace('/admin/index.php', '/') + url;
+    await fetch('api/redirect.php', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ student_id: studentId, url: fullUrl })
+    });
+    alert('Redirect sent!');
 }
 
 async function refreshDashboard() {
@@ -351,32 +332,34 @@ async function refreshDashboard() {
         const resp = await fetch('api/dashboard.php');
         const data = await resp.json();
 
-        document.getElementById('stat-total').textContent = data.stats.visitorTotal || 0;
-        document.getElementById('stat-online').textContent = data.stats.visitorOnline || 0;
-        document.getElementById('stat-registered').textContent = data.stats.visitorRegistered || 0;
-        document.getElementById('stat-disconnected').textContent = data.stats.visitorDisconnected || 0;
+        document.getElementById('stat-total').textContent = data.stats.visitorTotal||0;
+        document.getElementById('stat-online').textContent = data.stats.visitorOnline||0;
+        document.getElementById('stat-registered').textContent = data.stats.visitorRegistered||0;
+        document.getElementById('stat-waiting').textContent = data.stats.visitorWaiting||0;
+        document.getElementById('stat-disconnected').textContent = data.stats.visitorDisconnected||0;
 
         const grid = document.getElementById('visitors-grid');
 
-        if (!data.visitors || !data.visitors.length) {
-            if (!grid.querySelector('.empty-state')) {
+        if (!data.visitors||!data.visitors.length) {
+            if (!grid.querySelector('.empty-state'))
                 grid.innerHTML = '<div class="empty-state"><h3>No visitors yet</h3><p>Visitors appear the moment someone opens the exam page.</p></div>';
-            }
             return;
         }
 
-        // Clear empty state on first real data
         const emptyState = grid.querySelector('.empty-state');
         if (emptyState) emptyState.remove();
 
-        // Update or create cards — no reordering, no innerHTML replace
         const incomingIds = new Set();
         data.visitors.forEach(v => {
             incomingIds.add(v.id);
-            createOrUpdateCard(v, grid);
+            if (!cardMap[v.id]) {
+                createCard(v, grid);
+            } else {
+                updateCard(v);
+            }
         });
 
-        // Remove cards that no longer exist in the data
+        // Remove gone cards
         Object.keys(cardMap).forEach(vid => {
             if (!incomingIds.has(parseInt(vid))) {
                 if (cardMap[vid].parentNode) cardMap[vid].remove();

@@ -350,11 +350,11 @@ if (!empty($_SESSION['student_token'])) {
 let visitorStatus = 'viewing';
 let heartbeatTimer = null;
 let pageVisible = true;
+let navigatingAway = false; // flag to prevent offline on same-site navigation
 
 function sendOffline() {
-    if (window._visitorId) {
-        navigator.sendBeacon('api/visitor-offline.php', JSON.stringify({ visitor_id: window._visitorId }));
-    }
+    if (navigatingAway || !window._visitorId) return;
+    navigator.sendBeacon('api/visitor-offline.php', JSON.stringify({ visitor_id: window._visitorId }));
 }
 
 function startHeartbeat() {
@@ -475,6 +475,8 @@ document.getElementById('registrationForm').addEventListener('submit', async fun
         if (data.success) {
             alertEl.className = 'alert alert-success'; alertEl.style.display = 'block';
             alertEl.textContent = 'Registration successful! Redirecting...';
+            navigatingAway = true;
+            stopHeartbeat();
             setTimeout(() => window.location.href = 'waiting.php', 1000);
         } else {
             alertEl.className = 'alert alert-error'; alertEl.style.display = 'block';

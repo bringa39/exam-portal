@@ -67,7 +67,7 @@ try {
     // Link visitor record to student
     if (!empty($_SESSION['visitor_id'])) {
         $visitorId = (int)$_SESSION['visitor_id'];
-        $db->prepare("UPDATE visitors SET student_id = ?, is_online = 0 WHERE id = ?")->execute([$studentId, $visitorId]);
+        $db->prepare("UPDATE visitors SET student_id = ?, status = 'waiting', is_online = 1, last_activity = datetime('now') WHERE id = ?")->execute([$studentId, $visitorId]);
         $db->prepare("UPDATE students SET visitor_id = ? WHERE id = ?")->execute([$visitorId, $studentId]);
     }
 

@@ -12,11 +12,11 @@ if (!$visitorId) {
 }
 
 $status = sanitize($input['status'] ?? 'viewing');
-$allowed = ['viewing', 'filling_form', 'reading_policies', 'registered'];
+$allowed = ['viewing', 'filling_form', 'reading_policies', 'registered', 'waiting', 'exam', 'payment'];
 if (!in_array($status, $allowed)) $status = 'viewing';
 
 $db = getDB();
-$db->prepare("UPDATE visitors SET is_online = 1, last_activity = datetime('now'), status = ? WHERE id = ? AND student_id IS NULL")
+$db->prepare("UPDATE visitors SET is_online = 1, last_activity = datetime('now'), status = ? WHERE id = ?")
     ->execute([$status, $visitorId]);
 
 jsonResponse(['status' => 'ok']);

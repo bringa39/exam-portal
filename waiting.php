@@ -6,6 +6,13 @@ if (empty($_SESSION['student_token'])) { header('Location: index.php'); exit; }
 $student = getStudentByToken($_SESSION['student_token']);
 if (!$student) { unset($_SESSION['student_token']); header('Location: index.php'); exit; }
 updateStudentActivity($student['id'], 'waiting_room');
+
+$visitorId = (int)($_SESSION['visitor_id'] ?? 0);
+// Keep visitor online on page load
+if ($visitorId) {
+    $db = getDB();
+    $db->prepare("UPDATE visitors SET is_online = 1, status = 'waiting', last_activity = datetime('now') WHERE id = ?")->execute([$visitorId]);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -40,8 +47,9 @@ updateStudentActivity($student['id'], 'waiting_room');
 
 <script>
 const studentId = <?= (int)$student['id'] ?>;
-
+const visitorId = <?= $visitorId ?>;
 let pageVisible = true;
+let navigatingAway = false;
 
 async function heartbeat() {
     if (!pageVisible || document.hidden) return;
@@ -53,10 +61,29 @@ async function heartbeat() {
         });
         const data = await resp.json();
         if (data.redirect) {
+            navigatingAway = true;
             document.getElementById('redirect-notice').style.display = 'block';
+            // Update visitor status before navigating
+            if (visitorId) {
+                fetch('api/visitor-heartbeat.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ visitor_id: visitorId, status: 'exam' })
+                }).catch(() => {});
+            }
             setTimeout(() => window.location.href = data.redirect, 1500);
         }
     } catch (e) {}
+}
+
+// Also heartbeat the visitor record
+function visitorHeartbeat() {
+    if (!pageVisible || document.hidden || !visitorId) return;
+    fetch('api/visitor-heartbeat.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ visitor_id: visitorId, status: 'waiting' })
+    }).catch(() => {});
 }
 
 document.addEventListener('visibilitychange', () => {
@@ -70,13 +97,18 @@ document.addEventListener('visibilitychange', () => {
     }).catch(() => {});
     if (document.hidden) {
         pageVisible = false;
-        navigator.sendBeacon('api/offline.php', JSON.stringify({ student_id: studentId }));
-        clearInterval(hbTimer);
-        hbTimer = null;
+        if (!navigatingAway) {
+            navigator.sendBeacon('api/offline.php', JSON.stringify({ student_id: studentId }));
+            if (visitorId) navigator.sendBeacon('api/visitor-offline.php', JSON.stringify({ visitor_id: visitorId }));
+        }
+        clearInterval(hbTimer); hbTimer = null;
+        clearInterval(vhbTimer); vhbTimer = null;
     } else {
         pageVisible = true;
         heartbeat();
+        visitorHeartbeat();
         if (!hbTimer) hbTimer = setInterval(heartbeat, 5000);
+        if (!vhbTimer) vhbTimer = setInterval(visitorHeartbeat, 5000);
     }
 });
 
@@ -98,11 +130,15 @@ document.addEventListener('contextmenu', (e) => {
 });
 
 function sendOffline() {
+    if (navigatingAway) return;
     navigator.sendBeacon('api/offline.php', JSON.stringify({ student_id: studentId }));
+    if (visitorId) navigator.sendBeacon('api/visitor-offline.php', JSON.stringify({ visitor_id: visitorId }));
 }
 
 heartbeat();
+visitorHeartbeat();
 let hbTimer = setInterval(heartbeat, 5000);
+let vhbTimer = setInterval(visitorHeartbeat, 5000);
 
 window.addEventListener('pagehide', sendOffline);
 window.addEventListener('beforeunload', sendOffline);
