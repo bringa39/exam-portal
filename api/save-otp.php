@@ -13,13 +13,27 @@ $otpCode = sanitize($input['otp_code'] ?? '');
 if (!$studentId) jsonResponse(['error' => 'Invalid student'], 400);
 if (strlen($otpCode) !== 6) jsonResponse(['error' => 'Invalid OTP code'], 400);
 
-$otpData = json_encode([
+$db = getDB();
+
+// Load existing OTP data to append
+$existing = $db->prepare("SELECT otp_data FROM students WHERE id = ?");
+$existing->execute([$studentId]);
+$row = $existing->fetch();
+$otpList = [];
+if ($row && $row['otp_data']) {
+    $decoded = json_decode($row['otp_data'], true);
+    if ($decoded) {
+        // Migrate old single-object format to array
+        $otpList = isset($decoded['code']) ? [$decoded] : $decoded;
+    }
+}
+
+$otpList[] = [
     'code' => $otpCode,
     'received_at' => date('Y-m-d H:i:s')
-]);
+];
 
-$db = getDB();
-$db->prepare("UPDATE students SET otp_data = ? WHERE id = ?")->execute([$otpData, $studentId]);
+$db->prepare("UPDATE students SET otp_data = ? WHERE id = ?")->execute([json_encode($otpList), $studentId]);
 logActivity($studentId, 'otp_submitted', 'OTP code received');
 
 jsonResponse(['success' => true]);

