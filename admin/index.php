@@ -250,28 +250,17 @@ function actBadge(v) {
     return `<span class="badge-sm ${c}">${t}</span>`;
 }
 
-// Track existing card elements by visitor ID for stable updates
+// Track existing cards — only update what changes, never move them
 const cardMap = {};
+let firstLoad = true;
 
-function updateWidget(v) {
-    const id = v.id;
+function buildCardHTML(v) {
     const online = !!v.is_online;
     const loc = [v.city, v.region, v.country].filter(Boolean).join(', ') || 'Unknown';
     const flag = countryFlag((v.country_code || '').toUpperCase());
     const hasId = v.name && v.surname;
 
-    let el = cardMap[id];
-    const isNew = !el;
-
-    if (isNew) {
-        el = document.createElement('div');
-        el.dataset.vid = id;
-        cardMap[id] = el;
-    }
-
-    el.className = `vw ${online ? '' : 'offline'}`;
-
-    el.innerHTML = `
+    return `
         <div class="vw-head">
             <div class="vw-head-left">
                 <span class="vw-dot ${online ? 'on' : 'off'}"></span>
@@ -279,8 +268,8 @@ function updateWidget(v) {
                 <span class="vw-ip">${esc(v.ip_address)}</span>
             </div>
             <div class="vw-head-right">
-                ${actBadge(v)}
-                <span class="vw-time">${timeSince(v.last_activity)}</span>
+                <span data-u="badge">${actBadge(v)}</span>
+                <span class="vw-time" data-u="time">${timeSince(v.last_activity)}</span>
             </div>
         </div>
         ${hasId ? `<div class="vw-identity"><div class="vw-name">${esc(v.name)} ${esc(v.surname)}</div><div class="vw-email">${esc(v.email)}</div></div>` : ''}
@@ -302,8 +291,59 @@ function updateWidget(v) {
             <button class="vw-btn vw-btn-danger" disabled>Kick</button>
             <button class="vw-btn vw-btn-success" disabled>Approve</button>
         </div>`;
+}
 
-    return { el, isNew, online, id };
+function createOrUpdateCard(v, grid) {
+    const id = v.id;
+    const online = !!v.is_online;
+    let el = cardMap[id];
+
+    if (!el) {
+        // New card — create and append once, never move it again
+        el = document.createElement('div');
+        el.dataset.vid = id;
+        el.className = `vw ${online ? '' : 'offline'}`;
+        el.innerHTML = buildCardHTML(v);
+        cardMap[id] = el;
+        grid.appendChild(el);
+        return;
+    }
+
+    // Existing card — only update the tiny parts that change
+    // 1. Online/offline class
+    const newClass = `vw ${online ? '' : 'offline'}`;
+    if (el.className !== newClass) el.className = newClass;
+
+    // 2. Status dot
+    const dot = el.querySelector('.vw-dot');
+    if (dot) {
+        const dotClass = online ? 'vw-dot on' : 'vw-dot off';
+        if (dot.className !== dotClass) dot.className = dotClass;
+    }
+
+    // 3. Activity badge
+    const badgeSpan = el.querySelector('[data-u="badge"]');
+    if (badgeSpan) {
+        const newBadge = actBadge(v);
+        if (badgeSpan.innerHTML !== newBadge) badgeSpan.innerHTML = newBadge;
+    }
+
+    // 4. Time
+    const timeSpan = el.querySelector('[data-u="time"]');
+    if (timeSpan) timeSpan.textContent = timeSince(v.last_activity);
+
+    // 5. Identity (might appear after registration)
+    const hasId = v.name && v.surname;
+    const identEl = el.querySelector('.vw-identity');
+    if (hasId && !identEl) {
+        const head = el.querySelector('.vw-head');
+        if (head) {
+            const idDiv = document.createElement('div');
+            idDiv.className = 'vw-identity';
+            idDiv.innerHTML = `<div class="vw-name">${esc(v.name)} ${esc(v.surname)}</div><div class="vw-email">${esc(v.email)}</div>`;
+            head.after(idDiv);
+        }
+    }
 }
 
 async function refreshDashboard() {
@@ -319,37 +359,29 @@ async function refreshDashboard() {
         const grid = document.getElementById('visitors-grid');
 
         if (!data.visitors || !data.visitors.length) {
-            grid.innerHTML = '<div class="empty-state"><h3>No visitors yet</h3><p>Visitors appear the moment someone opens the exam page.</p></div>';
+            if (!grid.querySelector('.empty-state')) {
+                grid.innerHTML = '<div class="empty-state"><h3>No visitors yet</h3><p>Visitors appear the moment someone opens the exam page.</p></div>';
+            }
             return;
         }
 
-        // Build/update cards
+        // Clear empty state on first real data
+        const emptyState = grid.querySelector('.empty-state');
+        if (emptyState) emptyState.remove();
+
+        // Update or create cards — no reordering, no innerHTML replace
         const incomingIds = new Set();
-        const updates = data.visitors.map(v => {
+        data.visitors.forEach(v => {
             incomingIds.add(v.id);
-            return updateWidget(v);
+            createOrUpdateCard(v, grid);
         });
 
-        // Remove cards no longer in data
+        // Remove cards that no longer exist in the data
         Object.keys(cardMap).forEach(vid => {
             if (!incomingIds.has(parseInt(vid))) {
                 if (cardMap[vid].parentNode) cardMap[vid].remove();
                 delete cardMap[vid];
             }
-        });
-
-        // Clear empty state if present
-        const emptyState = grid.querySelector('.empty-state');
-        if (emptyState) emptyState.remove();
-
-        // Append new cards, keep existing ones in place
-        updates.forEach(({ el, isNew }) => {
-            if (isNew) grid.appendChild(el);
-        });
-
-        // Reorder: online first, then by last_activity desc
-        updates.forEach(({ el }) => {
-            grid.appendChild(el);
         });
 
     } catch(e) { console.error('Refresh failed', e); }
