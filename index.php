@@ -349,6 +349,7 @@ if (!empty($_SESSION['student_token'])) {
 // === Visitor tracking ===
 let visitorStatus = 'viewing';
 let heartbeatTimer = null;
+let pageVisible = true;
 
 function sendOffline() {
     if (window._visitorId) {
@@ -358,6 +359,7 @@ function sendOffline() {
 
 function startHeartbeat() {
     if (heartbeatTimer) return;
+    pageVisible = true;
     // Send one immediately when becoming visible
     if (window._visitorId) {
         fetch('api/visitor-heartbeat.php', {
@@ -367,6 +369,8 @@ function startHeartbeat() {
         }).catch(() => {});
     }
     heartbeatTimer = setInterval(() => {
+        // Double-check page is actually visible before sending
+        if (!pageVisible || document.hidden) return;
         if (window._visitorId) {
             fetch('api/visitor-heartbeat.php', {
                 method: 'POST',
@@ -378,6 +382,7 @@ function startHeartbeat() {
 }
 
 function stopHeartbeat() {
+    pageVisible = false;
     if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
 }
 

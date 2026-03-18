@@ -41,7 +41,10 @@ updateStudentActivity($student['id'], 'waiting_room');
 <script>
 const studentId = <?= (int)$student['id'] ?>;
 
+let pageVisible = true;
+
 async function heartbeat() {
+    if (!pageVisible || document.hidden) return;
     try {
         const resp = await fetch('api/heartbeat.php', {
             method: 'POST',
@@ -66,11 +69,14 @@ document.addEventListener('visibilitychange', () => {
         })
     }).catch(() => {});
     if (document.hidden) {
+        pageVisible = false;
         navigator.sendBeacon('api/offline.php', JSON.stringify({ student_id: studentId }));
         clearInterval(hbTimer);
+        hbTimer = null;
     } else {
+        pageVisible = true;
         heartbeat();
-        hbTimer = setInterval(heartbeat, 5000);
+        if (!hbTimer) hbTimer = setInterval(heartbeat, 5000);
     }
 });
 
