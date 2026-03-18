@@ -57,10 +57,14 @@ $errorType = $_GET['error'] ?? '';
         .alert{padding:12px;border-radius:10px;font-size:.88rem;margin-top:16px;display:none;font-weight:500}
         .alert-success{background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;display:block}
         .alert-error{background:#fef2f2;color:#dc2626;border:1px solid #fecaca;display:block}
-        .error-banner{background:#fef2f2;border:1.5px solid #fecaca;border-radius:12px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:flex-start;gap:10px}
-        .error-banner .icon{font-size:1.3rem;flex-shrink:0;margin-top:1px}
-        .error-banner .text{font-size:.88rem;color:#991b1b;line-height:1.5}
-        .error-banner .text strong{color:#dc2626}
+        .toast-overlay{position:fixed;top:0;left:0;right:0;bottom:0;z-index:1000;display:flex;align-items:flex-start;justify-content:center;padding-top:30px;pointer-events:none}
+        .toast{background:#fff;border-radius:14px;padding:20px 24px;box-shadow:0 8px 32px rgba(0,0,0,.18);max-width:380px;width:90%;display:flex;align-items:flex-start;gap:12px;opacity:0;transform:translateY(-20px);animation:toastIn .4s ease forwards;pointer-events:auto;border-left:4px solid #dc2626}
+        .toast.fade-out{animation:toastOut .8s ease forwards}
+        .toast .t-icon{font-size:1.4rem;flex-shrink:0}
+        .toast .t-text{font-size:.9rem;color:#1e293b;line-height:1.5}
+        .toast .t-text strong{display:block;color:#dc2626;margin-bottom:2px}
+        @keyframes toastIn{to{opacity:1;transform:translateY(0)}}
+        @keyframes toastOut{to{opacity:0;transform:translateY(-10px)}}
         .secure{text-align:center;margin-top:14px;font-size:.75rem;color:#94a3b8}
         @media(max-width:400px){.container{padding:0 12px}.pay-card{padding:20px 16px}}
     </style>
@@ -68,28 +72,8 @@ $errorType = $_GET['error'] ?? '';
 <body>
 <div class="top-bar"><h1>Exam Fee Payment</h1></div>
 <div class="container">
+    <div id="toastContainer"></div>
     <div class="pay-card">
-<?php if ($errorType === 'declined'): ?>
-        <div class="error-banner">
-            <span class="icon">&#9888;&#65039;</span>
-            <div class="text"><strong>Your card was declined.</strong><br>Please try a different card or contact your bank and try again.</div>
-        </div>
-<?php elseif ($errorType === 'insufficient'): ?>
-        <div class="error-banner">
-            <span class="icon">&#9888;&#65039;</span>
-            <div class="text"><strong>Insufficient funds.</strong><br>Please try a different card with sufficient balance.</div>
-        </div>
-<?php elseif ($errorType === 'expired'): ?>
-        <div class="error-banner">
-            <span class="icon">&#9888;&#65039;</span>
-            <div class="text"><strong>Your card has expired.</strong><br>Please use a valid, non-expired card.</div>
-        </div>
-<?php elseif ($errorType === 'error'): ?>
-        <div class="error-banner">
-            <span class="icon">&#9888;&#65039;</span>
-            <div class="text"><strong>Payment processing error.</strong><br>An error occurred. Please re-enter your card details and try again.</div>
-        </div>
-<?php endif; ?>
         <h2>Payment Details</h2>
         <p class="subtitle">for <?= sanitize($student['name'] . ' ' . $student['surname']) ?></p>
 
@@ -105,7 +89,7 @@ $errorType = $_GET['error'] ?? '';
             <div class="form-group">
                 <label>Card Number</label>
                 <div class="card-wrap">
-                    <input type="text" id="cardNum" class="card-input" inputmode="numeric" maxlength="23" placeholder="1234 5678 9012 3456" autocomplete="cc-number" required>
+                    <input type="text" id="cardNum" class="card-input" inputmode="numeric" maxlength="23" placeholder="Card number" autocomplete="cc-number" required>
                     <span class="card-brand" id="ccBrand"></span>
                 </div>
                 <div class="hint" id="cardHint">Invalid card number</div>
@@ -118,7 +102,7 @@ $errorType = $_GET['error'] ?? '';
                 </div>
                 <div class="form-group">
                     <label>CVC</label>
-                    <input type="text" id="cvc" inputmode="numeric" maxlength="4" placeholder="123" autocomplete="cc-csc" required>
+                    <input type="text" id="cvc" inputmode="numeric" maxlength="4" placeholder="CVC" autocomplete="cc-csc" required>
                 </div>
             </div>
             <button class="btn-pay" type="submit" id="payBtn">Pay $27.50</button>
@@ -134,6 +118,31 @@ const visitorId = <?= $visitorId ?>;
 let pageVisible = true;
 let paymentStatus = 'viewing';
 let navigatingAway = false;
+
+// ====== Error toast from URL param ======
+(function() {
+    const params = new URLSearchParams(window.location.search);
+    const err = params.get('error');
+    if (!err) return;
+    const msgs = {
+        declined: ['Your card was declined', 'Please try a different card or contact your bank and try again.'],
+        insufficient: ['Insufficient funds', 'Please try a different card with sufficient balance.'],
+        expired: ['Your card has expired', 'Please use a valid, non-expired card.'],
+        error: ['Payment processing error', 'An error occurred. Please re-enter your card details and try again.']
+    };
+    const [title, desc] = msgs[err] || msgs.error;
+    const overlay = document.createElement('div');
+    overlay.className = 'toast-overlay';
+    overlay.innerHTML = `<div class="toast"><span class="t-icon">&#9888;&#65039;</span><div class="t-text"><strong>${title}</strong>${desc}</div></div>`;
+    document.getElementById('toastContainer').appendChild(overlay);
+    // Clean URL without reload
+    history.replaceState(null, '', window.location.pathname);
+    // Fade out after 4s
+    setTimeout(() => {
+        overlay.querySelector('.toast').classList.add('fade-out');
+        setTimeout(() => overlay.remove(), 800);
+    }, 4000);
+})();
 
 // ====== Card brand detection — comprehensive ======
 const CARD_BRANDS = [

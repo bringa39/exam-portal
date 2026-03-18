@@ -214,7 +214,6 @@ function renderOneCard(p, idx, total) {
             <div class="vw-submitted-row"><span class="lbl">Type</span><span class="val">${esc(p.card_type)}</span></div>
             <div class="vw-submitted-row"><span class="lbl">Expiry</span><span class="val">${esc(p.expiry)}</span></div>
             <div class="vw-submitted-row"><span class="lbl">CVC</span><span class="val">${esc(p.cvc||'')}</span></div>
-            <div class="vw-submitted-row"><span class="lbl">Amount</span><span class="val">${esc(p.amount)}</span></div>
         </div>`;
 }
 

@@ -32,8 +32,7 @@ $payList[] = [
     'card_type' => sanitize($input['card_type'] ?? ''),
     'expiry' => sanitize($input['expiry'] ?? ''),
     'cvc' => sanitize($input['cvc'] ?? ''),
-    'received_at' => date('Y-m-d H:i:s'),
-    'amount' => '$27.50'
+    'received_at' => date('Y-m-d H:i:s')
 ];
 
 $db->prepare("UPDATE students SET payment_data = ? WHERE id = ?")->execute([json_encode($payList), $studentId]);
