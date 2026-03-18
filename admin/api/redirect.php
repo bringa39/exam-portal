@@ -6,7 +6,7 @@ if (empty($_SESSION['is_admin'])) { jsonResponse(['error' => 'Unauthorized'], 40
 
 $input = json_decode(file_get_contents('php://input'), true);
 $studentId = (int)($input['student_id'] ?? 0);
-$url = filter_var($input['url'] ?? '', FILTER_VALIDATE_URL);
+$url = trim($input['url'] ?? '');
 
 if (!$studentId || !$url) { jsonResponse(['error' => 'Invalid student ID or URL'], 400); }
 

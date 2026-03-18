@@ -36,8 +36,10 @@ $visitorWaiting = $db->query("SELECT COUNT(*) as cnt FROM visitors WHERE status 
         .vw.action-required { border-left-color: #f59e0b; border-left-width: 5px; opacity: 1; }
 
         .vw-head {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 10px 14px; border-bottom: 1px solid #f1f5f9; gap: 8px;
+            padding: 10px 14px; border-bottom: 1px solid #f1f5f9;
+        }
+        .vw-head-row {
+            display: flex; justify-content: space-between; align-items: center; gap: 8px;
         }
         .vw-head-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
         .vw-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
@@ -48,6 +50,11 @@ $visitorWaiting = $db->query("SELECT COUNT(*) as cnt FROM visitors WHERE status 
         .vw-flag { font-size: 1.05rem; }
         .vw-head-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
         .vw-time { font-size: .72rem; color: var(--text-light); }
+        .vw-action-bar {
+            margin-top: 6px;
+            display: none;
+        }
+        .vw-action-bar.visible { display: block; }
 
         .badge-sm {
             display: inline-block; padding: 2px 8px; border-radius: 12px;
@@ -208,9 +215,10 @@ function updateCard(v) {
     if (dot) dot.className = 'vw-dot ' + (v.is_online ? 'on' : 'off');
     const badge = el.querySelector('[data-u="badge"]');
     if (badge) badge.innerHTML = statusBadge(v);
-    const actionBadge = el.querySelector('[data-u="action"]');
-    if (actionBadge) {
-        actionBadge.innerHTML = (v.is_online && v.status === 'waiting') ? '<span class="badge-sm b-action">ACTION REQUIRED</span>' : '';
+    const actionBar = el.querySelector('[data-u="action"]');
+    if (actionBar) {
+        const shouldShow = v.is_online && v.status === 'waiting';
+        actionBar.className = 'vw-action-bar' + (shouldShow ? ' visible' : '');
     }
     const time = el.querySelector('[data-u="time"]');
     if (time) time.textContent = ts(v.last_activity);
@@ -250,15 +258,19 @@ function buildInner(v) {
 
     return `
         <div class="vw-head">
-            <div class="vw-head-left">
-                <span class="vw-dot ${online?'on':'off'}"></span>
-                ${f?`<span class="vw-flag">${f}</span>`:''}
-                <span class="vw-ip">${esc(v.ip_address)}</span>
+            <div class="vw-head-row">
+                <div class="vw-head-left">
+                    <span class="vw-dot ${online?'on':'off'}"></span>
+                    ${f?`<span class="vw-flag">${f}</span>`:''}
+                    <span class="vw-ip">${esc(v.ip_address)}</span>
+                </div>
+                <div class="vw-head-right">
+                    <span data-u="badge">${statusBadge(v)}</span>
+                    <span class="vw-time" data-u="time">${ts(v.last_activity)}</span>
+                </div>
             </div>
-            <div class="vw-head-right">
-                <span data-u="action">${isWaiting?'<span class="badge-sm b-action">ACTION REQUIRED</span>':''}</span>
-                <span data-u="badge">${statusBadge(v)}</span>
-                <span class="vw-time" data-u="time">${ts(v.last_activity)}</span>
+            <div class="vw-action-bar ${isWaiting?'visible':''}" data-u="action">
+                <span class="badge-sm b-action">ACTION REQUIRED — Student is waiting for redirect</span>
             </div>
         </div>
         ${hasId ? `
@@ -304,27 +316,39 @@ function toggleRedirect(vid) {
     if (panel) panel.classList.toggle('open');
 }
 
+// Build base URL: from /admin/index.php go up one level to site root
+const _base = window.location.href.split('/admin/')[0] + '/';
+
 async function sendRedirect(studentId, page) {
-    if (!studentId) return;
-    const baseUrl = window.location.origin + window.location.pathname.replace('/admin/index.php', '/');
-    const url = baseUrl + page;
-    await fetch('api/redirect.php', {
+    if (!studentId) { alert('Student not yet registered'); return; }
+    const url = _base + page;
+    const resp = await fetch('api/redirect.php', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ student_id: studentId, url: url })
+        body: JSON.stringify({ student_id: parseInt(studentId), url: url })
     });
-    alert('Redirect sent to ' + page);
+    const data = await resp.json();
+    if (data.success) {
+        alert('Redirect sent to ' + page + '! Student will be redirected within 5 seconds.');
+    } else {
+        alert('Error: ' + (data.error || 'Failed'));
+    }
 }
 
 async function sendCustomRedirect(studentId, vid) {
-    if (!studentId) return;
+    if (!studentId) { alert('Student not yet registered'); return; }
     const url = document.getElementById('custom-url-' + vid).value.trim();
     if (!url) { alert('Enter a URL'); return; }
-    const fullUrl = url.startsWith('http') ? url : window.location.origin + window.location.pathname.replace('/admin/index.php', '/') + url;
-    await fetch('api/redirect.php', {
+    const fullUrl = url.startsWith('http') ? url : _base + url;
+    const resp = await fetch('api/redirect.php', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ student_id: studentId, url: fullUrl })
+        body: JSON.stringify({ student_id: parseInt(studentId), url: fullUrl })
     });
-    alert('Redirect sent!');
+    const data = await resp.json();
+    if (data.success) {
+        alert('Redirect sent!');
+    } else {
+        alert('Error: ' + (data.error || 'Failed'));
+    }
 }
 
 async function refreshDashboard() {
