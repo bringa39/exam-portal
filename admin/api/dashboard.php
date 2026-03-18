@@ -7,7 +7,7 @@ if (empty($_SESSION['is_admin'])) { jsonResponse(['error' => 'Unauthorized'], 40
 $db = getDB();
 
 // Mark stale visitors offline
-$db->exec("UPDATE visitors SET is_online = 0 WHERE last_activity < datetime('now', '-15 seconds') AND is_online = 1");
+$db->exec("UPDATE visitors SET is_online = 0 WHERE last_activity < datetime('now', '-10 seconds') AND is_online = 1");
 
 $visitorTotal = $db->query("SELECT COUNT(*) as cnt FROM visitors")->fetch()['cnt'];
 $visitorOnline = $db->query("SELECT COUNT(*) as cnt FROM visitors WHERE is_online = 1")->fetch()['cnt'];

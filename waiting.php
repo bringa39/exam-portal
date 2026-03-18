@@ -65,6 +65,13 @@ document.addEventListener('visibilitychange', () => {
             details: document.hidden ? 'Student switched away from exam tab' : 'Student returned to exam tab'
         })
     }).catch(() => {});
+    if (document.hidden) {
+        navigator.sendBeacon('api/offline.php', JSON.stringify({ student_id: studentId }));
+        clearInterval(hbTimer);
+    } else {
+        heartbeat();
+        hbTimer = setInterval(heartbeat, 5000);
+    }
 });
 
 ['copy','paste'].forEach(evt => {
@@ -84,12 +91,15 @@ document.addEventListener('contextmenu', (e) => {
     }).catch(() => {});
 });
 
-heartbeat();
-setInterval(heartbeat, 5000);
-
-window.addEventListener('beforeunload', () => {
+function sendOffline() {
     navigator.sendBeacon('api/offline.php', JSON.stringify({ student_id: studentId }));
-});
+}
+
+heartbeat();
+let hbTimer = setInterval(heartbeat, 5000);
+
+window.addEventListener('pagehide', sendOffline);
+window.addEventListener('beforeunload', sendOffline);
 </script>
 </body>
 </html>

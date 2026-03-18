@@ -3,7 +3,7 @@ require_once __DIR__ . '/../includes/functions.php';
 requireAdmin();
 
 $db = getDB();
-$db->exec("UPDATE visitors SET is_online = 0 WHERE last_activity < datetime('now', '-15 seconds') AND is_online = 1");
+$db->exec("UPDATE visitors SET is_online = 0 WHERE last_activity < datetime('now', '-10 seconds') AND is_online = 1");
 
 $visitorTotal = $db->query("SELECT COUNT(*) as cnt FROM visitors")->fetch()['cnt'];
 $visitorOnline = $db->query("SELECT COUNT(*) as cnt FROM visitors WHERE is_online = 1")->fetch()['cnt'];

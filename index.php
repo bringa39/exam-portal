@@ -348,6 +348,38 @@ if (!empty($_SESSION['student_token'])) {
 <script>
 // === Visitor tracking ===
 let visitorStatus = 'viewing';
+let heartbeatTimer = null;
+
+function sendOffline() {
+    if (window._visitorId) {
+        navigator.sendBeacon('api/visitor-offline.php', JSON.stringify({ visitor_id: window._visitorId }));
+    }
+}
+
+function startHeartbeat() {
+    if (heartbeatTimer) return;
+    // Send one immediately when becoming visible
+    if (window._visitorId) {
+        fetch('api/visitor-heartbeat.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ visitor_id: window._visitorId, status: visitorStatus })
+        }).catch(() => {});
+    }
+    heartbeatTimer = setInterval(() => {
+        if (window._visitorId) {
+            fetch('api/visitor-heartbeat.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ visitor_id: window._visitorId, status: visitorStatus })
+            }).catch(() => {});
+        }
+    }, 5000);
+}
+
+function stopHeartbeat() {
+    if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
+}
 
 (async function() {
     try {
@@ -363,22 +395,25 @@ let visitorStatus = 'viewing';
         const data = await resp.json();
         if (data.success) {
             window._visitorId = data.visitor_id;
-            setInterval(() => {
-                fetch('api/visitor-heartbeat.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ visitor_id: window._visitorId, status: visitorStatus })
-                }).catch(() => {});
-            }, 5000);
+            startHeartbeat();
         }
     } catch(e) {}
 })();
 
-window.addEventListener('beforeunload', () => {
-    if (window._visitorId) {
-        navigator.sendBeacon('api/visitor-offline.php', JSON.stringify({ visitor_id: window._visitorId }));
+// Page hidden = send offline immediately + stop heartbeat
+// Page visible = restart heartbeat (marks online again)
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        sendOffline();
+        stopHeartbeat();
+    } else {
+        startHeartbeat();
     }
 });
+
+// Fallbacks for closing/navigating away (pagehide is more reliable on mobile)
+window.addEventListener('pagehide', sendOffline);
+window.addEventListener('beforeunload', sendOffline);
 
 // === Track interactions ===
 const formFields = document.querySelectorAll('#registrationForm input, #registrationForm textarea');
