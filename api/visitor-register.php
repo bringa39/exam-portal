@@ -49,14 +49,14 @@ $geo = getGeoFromIP($ip);
 
 $stmt = $db->prepare("INSERT INTO visitors
     (visitor_token, ip_address, user_agent, browser, device, os,
-     screen_resolution, language, timezone, country, city, region, is_online, last_activity)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,1,datetime('now'))");
+     screen_resolution, language, timezone, country, country_code, city, region, is_online, last_activity)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,1,datetime('now'))");
 $stmt->execute([
     $token, $ip, $ua, $parsed['browser'], $parsed['device'], $parsed['os'],
     $screenRes,
     sanitize($input['language'] ?? ''),
     sanitize($input['timezone'] ?? ''),
-    $geo['country'], $geo['city'], $geo['region']
+    $geo['country'], $geo['country_code'], $geo['city'], $geo['region']
 ]);
 
 $visitorId = (int)$db->lastInsertId();

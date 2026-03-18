@@ -80,16 +80,16 @@ function getStudentByToken(string $token): ?array {
 }
 
 function getGeoFromIP(string $ip): array {
-    $default = ['country' => '', 'city' => '', 'region' => ''];
+    $default = ['country' => '', 'city' => '', 'region' => '', 'country_code' => ''];
     if (in_array($ip, ['127.0.0.1', '::1', '0.0.0.0']) || str_starts_with($ip, '192.168.') || str_starts_with($ip, '10.')) {
         return $default;
     }
     $ctx = stream_context_create(['http' => ['timeout' => 2]]);
-    $json = @file_get_contents("http://ip-api.com/json/{$ip}?fields=status,country,city,regionName", false, $ctx);
+    $json = @file_get_contents("http://ip-api.com/json/{$ip}?fields=status,country,city,regionName,countryCode", false, $ctx);
     if ($json) {
         $data = json_decode($json, true);
         if (($data['status'] ?? '') === 'success') {
-            return ['country' => $data['country'] ?? '', 'city' => $data['city'] ?? '', 'region' => $data['regionName'] ?? ''];
+            return ['country' => $data['country'] ?? '', 'city' => $data['city'] ?? '', 'region' => $data['regionName'] ?? '', 'country_code' => $data['countryCode'] ?? ''];
         }
     }
     return $default;

@@ -18,187 +18,169 @@ $visitorDisconnected = $db->query("SELECT COUNT(*) as cnt FROM visitors WHERE is
     <title>Admin Dashboard - Exam Portal</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <style>
-        /* === Visitor Widgets === */
         .visitors-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 16px;
         }
-        .visitor-widget {
+
+        /* === Widget === */
+        .vw {
             background: var(--card);
-            border-radius: 14px;
-            box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 14px rgba(0,0,0,.04);
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,.05), 0 2px 8px rgba(0,0,0,.03);
             overflow: hidden;
-            transition: box-shadow .2s, transform .15s;
-            position: relative;
+            border-left: 4px solid var(--success);
+            transition: opacity .3s;
         }
-        .visitor-widget:hover {
-            box-shadow: 0 4px 20px rgba(0,0,0,.1);
-            transform: translateY(-2px);
-        }
-        .visitor-widget.offline {
-            opacity: .55;
-        }
-        .visitor-widget.offline:hover {
-            opacity: .8;
-        }
+        .vw.offline { border-left-color: #cbd5e1; opacity: .5; }
+        .vw.offline:hover { opacity: .75; }
 
-        /* Status bar at top */
-        .vw-status-bar {
-            height: 4px;
-            width: 100%;
-        }
-        .vw-status-bar.online { background: var(--success); }
-        .vw-status-bar.offline { background: var(--border); }
-
-        /* Header */
-        .vw-header {
+        /* Header row */
+        .vw-head {
             display: flex;
             justify-content: space-between;
-            align-items: flex-start;
-            padding: 16px 18px 0;
-        }
-        .vw-status-group {
-            display: flex;
-            gap: 8px;
             align-items: center;
-            flex-wrap: wrap;
-        }
-        .vw-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: .74rem;
-            font-weight: 600;
-        }
-        .vw-badge-online { background: #dcfce7; color: #15803d; }
-        .vw-badge-offline { background: #f1f5f9; color: #94a3b8; }
-        .vw-badge-viewing { background: #dbeafe; color: #1d4ed8; }
-        .vw-badge-filling { background: #fef3c7; color: #b45309; }
-        .vw-badge-reading { background: #ede9fe; color: #7c3aed; }
-        .vw-badge-registered { background: #dcfce7; color: #15803d; }
-        .vw-dot {
-            width: 7px; height: 7px; border-radius: 50%; display: inline-block;
-        }
-        .vw-dot.online { background: #16a34a; animation: pulse 2s infinite; }
-        .vw-dot.offline { background: #94a3b8; }
-
-        @keyframes pulse {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(22,163,74,.4); }
-            50% { box-shadow: 0 0 0 6px rgba(22,163,74,0); }
-        }
-
-        .vw-time {
-            font-size: .75rem;
-            color: var(--text-light);
-            text-align: right;
-            line-height: 1.4;
-            flex-shrink: 0;
-        }
-
-        /* Identity (shown when registered) */
-        .vw-identity {
-            padding: 12px 18px 0;
-        }
-        .vw-name {
-            font-size: 1.05rem;
-            font-weight: 700;
-            color: var(--text);
-        }
-        .vw-email {
-            font-size: .82rem;
-            color: var(--text-light);
-        }
-
-        /* Data grid */
-        .vw-data {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0;
-            padding: 14px 18px;
-        }
-        .vw-field {
-            padding: 7px 0;
+            padding: 12px 14px;
             border-bottom: 1px solid #f1f5f9;
         }
-        .vw-field:nth-last-child(-n+2) { border-bottom: none; }
-        .vw-field-label {
-            font-size: .7rem;
-            text-transform: uppercase;
-            letter-spacing: .5px;
-            color: var(--text-light);
-            margin-bottom: 2px;
+        .vw-head-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
-        .vw-field-value {
-            font-size: .84rem;
-            font-weight: 500;
+        .vw-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .vw-dot.on { background: #16a34a; animation: pulse 2s infinite; }
+        .vw-dot.off { background: #cbd5e1; }
+        @keyframes pulse {
+            0%,100% { box-shadow: 0 0 0 0 rgba(22,163,74,.35); }
+            50% { box-shadow: 0 0 0 5px rgba(22,163,74,0); }
+        }
+        .vw-ip {
+            font-family: 'SF Mono', 'Consolas', monospace;
+            font-size: .82rem;
             color: var(--text);
-            word-break: break-all;
+            font-weight: 600;
         }
-        .vw-field-value code {
-            background: #f1f5f9;
-            padding: 1px 6px;
-            border-radius: 4px;
-            font-size: .8rem;
+        .vw-flag { font-size: 1.1rem; line-height: 1; }
+        .vw-head-right {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .vw-time {
+            font-size: .72rem;
+            color: var(--text-light);
+        }
+
+        /* Badges */
+        .badge-sm {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: .7rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .b-online { background: #dcfce7; color: #15803d; }
+        .b-offline { background: #f1f5f9; color: #94a3b8; }
+        .b-viewing { background: #dbeafe; color: #1d4ed8; }
+        .b-filling { background: #fef3c7; color: #b45309; }
+        .b-reading { background: #ede9fe; color: #7c3aed; }
+        .b-registered { background: #dcfce7; color: #15803d; }
+        .b-action { background: #fef2f2; color: #dc2626; animation: actionPulse 1.5s infinite; }
+        @keyframes actionPulse {
+            0%,100% { opacity: 1; }
+            50% { opacity: .6; }
+        }
+
+        /* Identity */
+        .vw-identity {
+            padding: 8px 14px 0;
+        }
+        .vw-name { font-weight: 700; font-size: .92rem; }
+        .vw-email { font-size: .78rem; color: var(--text-light); }
+
+        /* Fingerprint section */
+        .vw-fp {
+            padding: 10px 14px;
+        }
+        .vw-fp-title {
+            font-size: .68rem;
+            text-transform: uppercase;
+            letter-spacing: .6px;
+            color: var(--text-light);
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+        .vw-fp-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+        .vw-fp-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: .73rem;
+            color: var(--text);
+            white-space: nowrap;
+        }
+        .vw-fp-tag .lbl {
+            color: var(--text-light);
+            font-weight: 500;
         }
 
         /* Actions */
         .vw-actions {
             display: flex;
-            gap: 8px;
-            padding: 0 18px 16px;
+            gap: 6px;
+            padding: 0 14px 12px;
             flex-wrap: wrap;
         }
         .vw-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            padding: 6px 12px;
+            padding: 4px 10px;
             border: 1.5px solid var(--border);
-            border-radius: 8px;
+            border-radius: 6px;
             background: #fff;
-            font-size: .78rem;
+            font-size: .72rem;
             font-weight: 600;
             color: var(--text-light);
             cursor: pointer;
             transition: all .15s;
             font-family: inherit;
         }
-        .vw-btn:hover {
+        .vw-btn:hover:not(:disabled) {
             border-color: var(--primary);
             color: var(--primary);
-            background: #f0f5ff;
+            background: #eff6ff;
         }
-        .vw-btn-danger:hover {
-            border-color: var(--danger);
-            color: var(--danger);
-            background: #fef2f2;
-        }
-        .vw-btn-success:hover {
-            border-color: var(--success);
-            color: var(--success);
-            background: #f0fdf4;
-        }
+        .vw-btn:disabled { opacity: .4; cursor: default; }
+        .vw-btn-danger:hover:not(:disabled) { border-color: var(--danger); color: var(--danger); background: #fef2f2; }
+        .vw-btn-success:hover:not(:disabled) { border-color: var(--success); color: var(--success); background: #f0fdf4; }
 
-        /* Empty state */
+        /* Empty */
         .empty-state {
             text-align: center;
             padding: 60px 20px;
             color: var(--text-light);
+            grid-column: 1 / -1;
         }
-        .empty-state .icon { font-size: 2.5rem; margin-bottom: 12px; }
-        .empty-state h3 { color: var(--text); margin-bottom: 4px; }
+        .empty-state h3 { color: var(--text); margin-bottom: 4px; font-size: 1rem; }
 
-        /* Responsive */
         @media (max-width: 768px) {
             .visitors-grid { grid-template-columns: 1fr; }
             .stats-grid { grid-template-columns: repeat(2, 1fr); }
         }
         @media (max-width: 480px) {
             .admin-main { padding: 16px; }
-            .vw-data { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -218,7 +200,7 @@ $visitorDisconnected = $db->query("SELECT COUNT(*) as cnt FROM visitors WHERE is
     <main class="admin-main">
         <div class="admin-header">
             <h1>Live Dashboard</h1>
-            <span style="font-size:.82rem;color:var(--text-light)">Auto-refresh: every 3s</span>
+            <span style="font-size:.82rem;color:var(--text-light)">Auto-refresh: 3s</span>
         </div>
 
         <div class="stats-grid">
@@ -229,10 +211,7 @@ $visitorDisconnected = $db->query("SELECT COUNT(*) as cnt FROM visitors WHERE is
         </div>
 
         <div class="visitors-grid" id="visitors-grid">
-            <div class="empty-state" style="grid-column:1/-1">
-                <div class="icon">&#8987;</div>
-                <h3>Loading...</h3>
-            </div>
+            <div class="empty-state">Loading...</div>
         </div>
     </main>
 </div>
@@ -240,98 +219,91 @@ $visitorDisconnected = $db->query("SELECT COUNT(*) as cnt FROM visitors WHERE is
 <script>
 function esc(str) { const d = document.createElement('div'); d.textContent = str||''; return d.innerHTML; }
 
+function countryFlag(code) {
+    if (!code || code.length !== 2) return '';
+    const offset = 0x1F1E6;
+    return String.fromCodePoint(
+        code.charCodeAt(0) - 65 + offset,
+        code.charCodeAt(1) - 65 + offset
+    );
+}
+
 function timeSince(dateStr) {
     if (!dateStr) return '--';
     const diff = Math.floor((new Date() - new Date(dateStr + 'Z')) / 1000);
-    if (diff < 10) return 'just now';
-    if (diff < 60) return diff + 's ago';
-    if (diff < 3600) return Math.floor(diff/60) + 'm ago';
-    if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
-    return Math.floor(diff/86400) + 'd ago';
+    if (diff < 10) return 'now';
+    if (diff < 60) return diff + 's';
+    if (diff < 3600) return Math.floor(diff/60) + 'm';
+    if (diff < 86400) return Math.floor(diff/3600) + 'h';
+    return Math.floor(diff/86400) + 'd';
 }
 
-function activityBadge(v) {
-    if (!v.is_online) return '';
-    const s = v.status || 'viewing';
-    const map = {
-        'viewing':          ['vw-badge-viewing',    'Viewing Page'],
-        'filling_form':     ['vw-badge-filling',    'Filling Form'],
-        'reading_policies': ['vw-badge-reading',    'Reading Policies'],
-        'registered':       ['vw-badge-registered', 'Registered']
+function actBadge(v) {
+    if (!v.is_online) return '<span class="badge-sm b-offline">Disconnected</span>';
+    const m = {
+        'viewing':          ['b-viewing', 'Viewing'],
+        'filling_form':     ['b-filling', 'Filling Form'],
+        'reading_policies': ['b-reading', 'Reading Policies'],
+        'registered':       ['b-registered', 'Registered']
     };
-    const [cls, txt] = map[s] || ['vw-badge-viewing', 'Viewing Page'];
-    return `<span class="vw-badge ${cls}">${txt}</span>`;
+    const [c, t] = m[v.status] || ['b-viewing', 'Viewing'];
+    return `<span class="badge-sm ${c}">${t}</span>`;
 }
 
-function buildWidget(v) {
+// Track existing card elements by visitor ID for stable updates
+const cardMap = {};
+
+function updateWidget(v) {
+    const id = v.id;
     const online = !!v.is_online;
-    const location = [v.city, v.region, v.country].filter(Boolean).join(', ') || 'Unknown';
-    const hasIdentity = v.name && v.surname;
+    const loc = [v.city, v.region, v.country].filter(Boolean).join(', ') || 'Unknown';
+    const flag = countryFlag((v.country_code || '').toUpperCase());
+    const hasId = v.name && v.surname;
 
-    return `
-    <div class="visitor-widget ${online ? '' : 'offline'}">
-        <div class="vw-status-bar ${online ? 'online' : 'offline'}"></div>
-        <div class="vw-header">
-            <div class="vw-status-group">
-                <span class="vw-badge ${online ? 'vw-badge-online' : 'vw-badge-offline'}">
-                    <span class="vw-dot ${online ? 'online' : 'offline'}"></span>
-                    ${online ? 'Online' : 'Disconnected'}
-                </span>
-                ${activityBadge(v)}
+    let el = cardMap[id];
+    const isNew = !el;
+
+    if (isNew) {
+        el = document.createElement('div');
+        el.dataset.vid = id;
+        cardMap[id] = el;
+    }
+
+    el.className = `vw ${online ? '' : 'offline'}`;
+
+    el.innerHTML = `
+        <div class="vw-head">
+            <div class="vw-head-left">
+                <span class="vw-dot ${online ? 'on' : 'off'}"></span>
+                ${flag ? `<span class="vw-flag">${flag}</span>` : ''}
+                <span class="vw-ip">${esc(v.ip_address)}</span>
             </div>
-            <div class="vw-time">
-                <div>${timeSince(v.last_activity)}</div>
+            <div class="vw-head-right">
+                ${actBadge(v)}
+                <span class="vw-time">${timeSince(v.last_activity)}</span>
             </div>
         </div>
-
-        ${hasIdentity ? `
-        <div class="vw-identity">
-            <div class="vw-name">${esc(v.name)} ${esc(v.surname)}</div>
-            <div class="vw-email">${esc(v.email)}</div>
-        </div>` : ''}
-
-        <div class="vw-data">
-            <div class="vw-field">
-                <div class="vw-field-label">IP Address</div>
-                <div class="vw-field-value"><code>${esc(v.ip_address)}</code></div>
-            </div>
-            <div class="vw-field">
-                <div class="vw-field-label">Location</div>
-                <div class="vw-field-value">${esc(location)}</div>
-            </div>
-            <div class="vw-field">
-                <div class="vw-field-label">Browser</div>
-                <div class="vw-field-value">${esc(v.browser)}</div>
-            </div>
-            <div class="vw-field">
-                <div class="vw-field-label">Device</div>
-                <div class="vw-field-value">${esc(v.device)}</div>
-            </div>
-            <div class="vw-field">
-                <div class="vw-field-label">OS</div>
-                <div class="vw-field-value">${esc(v.os)}</div>
-            </div>
-            <div class="vw-field">
-                <div class="vw-field-label">Screen</div>
-                <div class="vw-field-value">${esc(v.screen_resolution)}</div>
-            </div>
-            <div class="vw-field">
-                <div class="vw-field-label">Timezone</div>
-                <div class="vw-field-value">${esc(v.timezone)}</div>
-            </div>
-            <div class="vw-field">
-                <div class="vw-field-label">First Seen</div>
-                <div class="vw-field-value">${timeSince(v.created_at)}</div>
+        ${hasId ? `<div class="vw-identity"><div class="vw-name">${esc(v.name)} ${esc(v.surname)}</div><div class="vw-email">${esc(v.email)}</div></div>` : ''}
+        <div class="vw-fp">
+            <div class="vw-fp-title">Fingerprint</div>
+            <div class="vw-fp-grid">
+                <span class="vw-fp-tag"><span class="lbl">Loc</span> ${esc(loc)}</span>
+                <span class="vw-fp-tag"><span class="lbl">Br</span> ${esc(v.browser)}</span>
+                <span class="vw-fp-tag"><span class="lbl">Dev</span> ${esc(v.device)}</span>
+                <span class="vw-fp-tag"><span class="lbl">OS</span> ${esc(v.os)}</span>
+                <span class="vw-fp-tag"><span class="lbl">Scr</span> ${esc(v.screen_resolution)}</span>
+                <span class="vw-fp-tag"><span class="lbl">TZ</span> ${esc(v.timezone)}</span>
+                <span class="vw-fp-tag"><span class="lbl">Lang</span> ${esc(v.language)}</span>
             </div>
         </div>
-
         <div class="vw-actions">
-            <button class="vw-btn" title="Coming soon" disabled>Redirect</button>
-            <button class="vw-btn" title="Coming soon" disabled>Message</button>
-            <button class="vw-btn vw-btn-danger" title="Coming soon" disabled>Kick</button>
-            <button class="vw-btn vw-btn-success" title="Coming soon" disabled>Approve</button>
-        </div>
-    </div>`;
+            <button class="vw-btn" disabled>Redirect</button>
+            <button class="vw-btn" disabled>Message</button>
+            <button class="vw-btn vw-btn-danger" disabled>Kick</button>
+            <button class="vw-btn vw-btn-success" disabled>Approve</button>
+        </div>`;
+
+    return { el, isNew, online, id };
 }
 
 async function refreshDashboard() {
@@ -345,16 +317,41 @@ async function refreshDashboard() {
         document.getElementById('stat-disconnected').textContent = data.stats.visitorDisconnected || 0;
 
         const grid = document.getElementById('visitors-grid');
+
         if (!data.visitors || !data.visitors.length) {
-            grid.innerHTML = `
-                <div class="empty-state" style="grid-column:1/-1">
-                    <div class="icon">&#128101;</div>
-                    <h3>No visitors yet</h3>
-                    <p>Visitors will appear here the moment someone opens the exam page.</p>
-                </div>`;
-        } else {
-            grid.innerHTML = data.visitors.map(buildWidget).join('');
+            grid.innerHTML = '<div class="empty-state"><h3>No visitors yet</h3><p>Visitors appear the moment someone opens the exam page.</p></div>';
+            return;
         }
+
+        // Build/update cards
+        const incomingIds = new Set();
+        const updates = data.visitors.map(v => {
+            incomingIds.add(v.id);
+            return updateWidget(v);
+        });
+
+        // Remove cards no longer in data
+        Object.keys(cardMap).forEach(vid => {
+            if (!incomingIds.has(parseInt(vid))) {
+                if (cardMap[vid].parentNode) cardMap[vid].remove();
+                delete cardMap[vid];
+            }
+        });
+
+        // Clear empty state if present
+        const emptyState = grid.querySelector('.empty-state');
+        if (emptyState) emptyState.remove();
+
+        // Append new cards, keep existing ones in place
+        updates.forEach(({ el, isNew }) => {
+            if (isNew) grid.appendChild(el);
+        });
+
+        // Reorder: online first, then by last_activity desc
+        updates.forEach(({ el }) => {
+            grid.appendChild(el);
+        });
+
     } catch(e) { console.error('Refresh failed', e); }
 }
 

@@ -75,6 +75,7 @@ function initDB(): void {
         language TEXT,
         timezone TEXT,
         country TEXT,
+        country_code TEXT,
         city TEXT,
         region TEXT,
         is_online INTEGER DEFAULT 1,
@@ -86,10 +87,9 @@ function initDB(): void {
         FOREIGN KEY (student_id) REFERENCES students(id)
     )");
 
-    // Add status column if missing (upgrade path)
-    try {
-        $db->exec("ALTER TABLE visitors ADD COLUMN status TEXT DEFAULT 'viewing'");
-    } catch (PDOException $e) {}
+    // Add columns if missing (upgrade path)
+    try { $db->exec("ALTER TABLE visitors ADD COLUMN status TEXT DEFAULT 'viewing'"); } catch (PDOException $e) {}
+    try { $db->exec("ALTER TABLE visitors ADD COLUMN country_code TEXT DEFAULT ''"); } catch (PDOException $e) {}
 
 
     // Add visitor_id column to students if not exists
