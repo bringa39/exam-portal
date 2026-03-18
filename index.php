@@ -269,8 +269,30 @@ if (!empty($_SESSION['student_token'])) {
             </div>
 
             <div class="form-group">
-                <label for="address">Full Address</label>
-                <textarea id="address" name="address" rows="2" placeholder="Street, City, Country" required></textarea>
+                <label for="street">Street Address</label>
+                <input type="text" id="street" name="street" placeholder="123 Main Street, Apt 4B" required>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="city">City</label>
+                    <input type="text" id="city" name="city" placeholder="New York" required>
+                </div>
+                <div class="form-group">
+                    <label for="state">State / Region</label>
+                    <input type="text" id="state" name="state" placeholder="NY" required>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="zip">ZIP / Postal Code</label>
+                    <input type="text" id="zip" name="zip" placeholder="10001" required>
+                </div>
+                <div class="form-group">
+                    <label for="country">Country</label>
+                    <input type="text" id="country" name="country" placeholder="United States" required>
+                </div>
             </div>
 
             <button type="submit" class="btn btn-primary" id="submitBtn">Submit</button>
@@ -371,12 +393,17 @@ document.getElementById('registrationForm').addEventListener('submit', async fun
     const surname = document.getElementById('surname').value.trim();
     const email = document.getElementById('email').value.trim();
     const phone = document.getElementById('phone').value.trim();
-    const address = document.getElementById('address').value.trim();
+    const street = document.getElementById('street').value.trim();
+    const city = document.getElementById('city').value.trim();
+    const state = document.getElementById('state').value.trim();
+    const zip = document.getElementById('zip').value.trim();
+    const country = document.getElementById('country').value.trim();
 
-    if (!name || !surname || !email || !phone || !address) {
+    if (!name || !surname || !email || !phone || !street || !city || !zip || !country) {
         alertEl.className = 'alert alert-error'; alertEl.style.display = 'block';
         alertEl.textContent = 'Please fill in all required fields.'; return;
     }
+    const address = JSON.stringify({ street, city, state, zip, country });
 
     btn.disabled = true; btn.textContent = 'Submitting...';
     visitorStatus = 'registered';
