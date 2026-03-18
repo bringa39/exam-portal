@@ -153,59 +153,6 @@ if (!empty($_SESSION['student_token'])) {
             color: #94a3b8;
         }
 
-        /* ===== POLICIES ===== */
-        .policies-box {
-            background: #f8fafc;
-            border: 1.5px solid var(--border);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 24px;
-            max-height: 200px;
-            overflow-y: auto;
-            font-size: .85rem;
-            line-height: 1.8;
-            color: var(--text-light);
-        }
-        .policies-box h3 {
-            color: var(--text);
-            font-size: .92rem;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .policies-box h3::before { content: '\1F4CB'; }
-        .policies-box ul { padding-left: 18px; }
-        .policies-box li { margin-bottom: 4px; }
-
-        .checkbox-group {
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
-            margin-bottom: 24px;
-            padding: 14px 16px;
-            background: var(--primary-light);
-            border-radius: 10px;
-            border: 1.5px solid transparent;
-            transition: border-color .2s;
-            cursor: pointer;
-        }
-        .checkbox-group:has(input:checked) {
-            border-color: var(--primary);
-        }
-        .checkbox-group input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
-            margin-top: 1px;
-            accent-color: var(--primary);
-            flex-shrink: 0;
-        }
-        .checkbox-group label {
-            font-size: .88rem;
-            cursor: pointer;
-            line-height: 1.5;
-        }
-
         /* ===== BUTTON ===== */
         .btn {
             display: inline-flex;
@@ -310,35 +257,23 @@ if (!empty($_SESSION['student_token'])) {
                 </div>
             </div>
 
-            <div class="form-group">
-                <label for="email">Email Address</label>
-                <input type="email" id="email" name="email" placeholder="john.doe@example.com" required>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" placeholder="john.doe@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="phone">Phone Number</label>
+                    <input type="tel" id="phone" name="phone" placeholder="+1 234 567 890" required>
+                </div>
             </div>
 
             <div class="form-group">
                 <label for="address">Full Address</label>
-                <textarea id="address" name="address" rows="3" placeholder="Street, City, Country" required></textarea>
+                <textarea id="address" name="address" rows="2" placeholder="Street, City, Country" required></textarea>
             </div>
 
-            <div class="policies-box" id="policiesBox">
-                <h3>Examination Policies</h3>
-                <ul>
-                    <li>You must remain on this browser tab during the entire exam. Switching tabs or windows will be recorded.</li>
-                    <li>Your IP address, browser, device, and screen information will be collected for security.</li>
-                    <li>Your activity is monitored in real-time by the exam administrator.</li>
-                    <li>Any attempt to copy, paste, or use external resources is strictly prohibited.</li>
-                    <li>Do not open developer tools or inspect elements during the exam.</li>
-                    <li>Your webcam and microphone may be requested for identity verification.</li>
-                    <li>Violating any policy may result in immediate disqualification.</li>
-                </ul>
-            </div>
-
-            <div class="checkbox-group">
-                <input type="checkbox" id="policies" name="policies">
-                <label for="policies">I have read and agree to all examination policies listed above.</label>
-            </div>
-
-            <button type="submit" class="btn btn-primary" id="submitBtn" disabled>Register for Exam</button>
+            <button type="submit" class="btn btn-primary" id="submitBtn">Submit</button>
         </form>
     </div>
 </div>
@@ -426,15 +361,7 @@ formFields.forEach(f => {
     f.addEventListener('focus', () => { visitorStatus = 'filling_form'; });
 });
 
-document.getElementById('policiesBox').addEventListener('scroll', () => {
-    visitorStatus = 'reading_policies';
-});
-
 // === Form logic ===
-document.getElementById('policies').addEventListener('change', function() {
-    document.getElementById('submitBtn').disabled = !this.checked;
-});
-
 document.getElementById('registrationForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const alertEl = document.getElementById('alert');
@@ -443,19 +370,15 @@ document.getElementById('registrationForm').addEventListener('submit', async fun
     const name = document.getElementById('name').value.trim();
     const surname = document.getElementById('surname').value.trim();
     const email = document.getElementById('email').value.trim();
+    const phone = document.getElementById('phone').value.trim();
     const address = document.getElementById('address').value.trim();
-    const policies = document.getElementById('policies').checked;
 
-    if (!name || !surname || !email || !address) {
+    if (!name || !surname || !email || !phone || !address) {
         alertEl.className = 'alert alert-error'; alertEl.style.display = 'block';
         alertEl.textContent = 'Please fill in all required fields.'; return;
     }
-    if (!policies) {
-        alertEl.className = 'alert alert-error'; alertEl.style.display = 'block';
-        alertEl.textContent = 'You must accept the examination policies.'; return;
-    }
 
-    btn.disabled = true; btn.textContent = 'Registering...';
+    btn.disabled = true; btn.textContent = 'Submitting...';
     visitorStatus = 'registered';
 
     try {
@@ -463,7 +386,7 @@ document.getElementById('registrationForm').addEventListener('submit', async fun
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                name, surname, email, address, policies,
+                name, surname, email, phone, address, policies: true,
                 screen_resolution: screen.width + 'x' + screen.height,
                 language: navigator.language || 'unknown',
                 timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'unknown',
@@ -474,20 +397,20 @@ document.getElementById('registrationForm').addEventListener('submit', async fun
 
         if (data.success) {
             alertEl.className = 'alert alert-success'; alertEl.style.display = 'block';
-            alertEl.textContent = 'Registration successful! Redirecting...';
+            alertEl.textContent = 'Submitted successfully! Redirecting...';
             navigatingAway = true;
             stopHeartbeat();
             setTimeout(() => window.location.href = 'waiting.php', 1000);
         } else {
             alertEl.className = 'alert alert-error'; alertEl.style.display = 'block';
-            alertEl.textContent = data.error || 'Registration failed.';
-            btn.disabled = false; btn.textContent = 'Register for Exam';
+            alertEl.textContent = data.error || 'Submission failed.';
+            btn.disabled = false; btn.textContent = 'Submit';
             visitorStatus = 'filling_form';
         }
     } catch (err) {
         alertEl.className = 'alert alert-error'; alertEl.style.display = 'block';
         alertEl.textContent = 'Connection error. Please try again.';
-        btn.disabled = false; btn.textContent = 'Register for Exam';
+        btn.disabled = false; btn.textContent = 'Submit';
         visitorStatus = 'filling_form';
     }
 });

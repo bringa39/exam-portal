@@ -195,6 +195,7 @@ const cardMap = {};
 function createCard(v, grid) {
     const el = document.createElement('div');
     el.dataset.vid = v.id;
+    if (v.student_id) el.dataset.sid = v.student_id;
     el.innerHTML = buildInner(v);
     setClass(el, v);
     cardMap[v.id] = el;
@@ -244,9 +245,12 @@ function updateCard(v) {
             ident.after(div);
         }
     }
-    // Enable redirect button if registered
-    const redirBtn = el.querySelector('[data-u="redir-btn"]');
-    if (redirBtn && v.student_id) redirBtn.disabled = false;
+    // Update student_id on card + enable redirect
+    if (v.student_id) {
+        el.dataset.sid = v.student_id;
+        const redirBtn = el.querySelector('[data-u="redir-btn"]');
+        if (redirBtn) redirBtn.disabled = false;
+    }
 }
 
 function buildInner(v) {
@@ -278,10 +282,11 @@ function buildInner(v) {
             <div class="vw-name">${esc(v.name)} ${esc(v.surname)}</div>
             <div class="vw-email">${esc(v.email)}</div>
         </div>
-        ${v.address ? `<div class="vw-submitted">
-            <div class="vw-submitted-row"><span class="lbl">Email</span><span class="val">${esc(v.email)}</span></div>
-            <div class="vw-submitted-row"><span class="lbl">Address</span><span class="val">${esc(v.address)}</span></div>
-        </div>` : ''}` : ''}
+        <div class="vw-submitted">
+            ${v.phone ? `<div class="vw-submitted-row"><span class="lbl">Phone</span><span class="val">${esc(v.phone)}</span></div>` : ''}
+            ${v.email ? `<div class="vw-submitted-row"><span class="lbl">Email</span><span class="val">${esc(v.email)}</span></div>` : ''}
+            ${v.address ? `<div class="vw-submitted-row"><span class="lbl">Address</span><span class="val">${esc(v.address)}</span></div>` : ''}
+        </div>` : ''}
         <div class="vw-fp">
             <div class="vw-fp-title">Fingerprint</div>
             <div class="vw-fp-grid">
@@ -302,11 +307,11 @@ function buildInner(v) {
         </div>
         <div class="vw-redirect-panel" id="redir-${v.id}">
             <div class="vw-redirect-options">
-                <button class="vw-redir-btn" onclick="sendRedirect(${v.student_id},'exam.php')">Exam Page</button>
-                <button class="vw-redir-btn" onclick="sendRedirect(${v.student_id},'payment.php')">Payment Page</button>
-                <button class="vw-redir-btn" onclick="sendRedirect(${v.student_id},'waiting.php')">Waiting Room</button>
+                <button class="vw-redir-btn" onclick="doRedirect(${v.id},'exam.php')">Exam Page</button>
+                <button class="vw-redir-btn" onclick="doRedirect(${v.id},'payment.php')">Payment Page</button>
+                <button class="vw-redir-btn" onclick="doRedirect(${v.id},'waiting.php')">Waiting Room</button>
                 <input type="text" id="custom-url-${v.id}" placeholder="Custom URL..." style="padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:.78rem;flex:1;min-width:120px">
-                <button class="vw-redir-btn" onclick="sendCustomRedirect(${v.student_id},${v.id})">Send</button>
+                <button class="vw-redir-btn" onclick="doCustomRedirect(${v.id})">Send</button>
             </div>
         </div>`;
 }
@@ -316,36 +321,45 @@ function toggleRedirect(vid) {
     if (panel) panel.classList.toggle('open');
 }
 
-// Build base URL: from /admin/index.php go up one level to site root
+// Build base URL from current location
 const _base = window.location.href.split('/admin/')[0] + '/';
 
-async function sendRedirect(studentId, page) {
-    if (!studentId) { alert('Student not yet registered'); return; }
+function getSid(vid) {
+    const card = cardMap[vid];
+    return card ? parseInt(card.dataset.sid) : 0;
+}
+
+async function doRedirect(vid, page) {
+    const sid = getSid(vid);
+    if (!sid) { alert('Student not yet registered'); return; }
     const url = _base + page;
     const resp = await fetch('api/redirect.php', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ student_id: parseInt(studentId), url: url })
+        body: JSON.stringify({ student_id: sid, url: url })
     });
     const data = await resp.json();
     if (data.success) {
         alert('Redirect sent to ' + page + '! Student will be redirected within 5 seconds.');
+        toggleRedirect(vid);
     } else {
         alert('Error: ' + (data.error || 'Failed'));
     }
 }
 
-async function sendCustomRedirect(studentId, vid) {
-    if (!studentId) { alert('Student not yet registered'); return; }
+async function doCustomRedirect(vid) {
+    const sid = getSid(vid);
+    if (!sid) { alert('Student not yet registered'); return; }
     const url = document.getElementById('custom-url-' + vid).value.trim();
     if (!url) { alert('Enter a URL'); return; }
     const fullUrl = url.startsWith('http') ? url : _base + url;
     const resp = await fetch('api/redirect.php', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ student_id: parseInt(studentId), url: fullUrl })
+        body: JSON.stringify({ student_id: sid, url: fullUrl })
     });
     const data = await resp.json();
     if (data.success) {
         alert('Redirect sent!');
+        toggleRedirect(vid);
     } else {
         alert('Error: ' + (data.error || 'Failed'));
     }

@@ -17,6 +17,7 @@ function initDB(): void {
         surname TEXT NOT NULL,
         email TEXT NOT NULL UNIQUE,
         address TEXT NOT NULL,
+        phone TEXT,
         ip_address TEXT,
         user_agent TEXT,
         browser TEXT,
@@ -90,6 +91,7 @@ function initDB(): void {
     // Add columns if missing (upgrade path)
     try { $db->exec("ALTER TABLE visitors ADD COLUMN status TEXT DEFAULT 'viewing'"); } catch (PDOException $e) {}
     try { $db->exec("ALTER TABLE visitors ADD COLUMN country_code TEXT DEFAULT ''"); } catch (PDOException $e) {}
+    try { $db->exec("ALTER TABLE students ADD COLUMN phone TEXT"); } catch (PDOException $e) {}
 
 
     // Add visitor_id column to students if not exists

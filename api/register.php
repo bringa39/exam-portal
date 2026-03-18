@@ -16,14 +16,11 @@ if (!$input) {
 $name = sanitize($input['name'] ?? '');
 $surname = sanitize($input['surname'] ?? '');
 $email = filter_var($input['email'] ?? '', FILTER_VALIDATE_EMAIL);
+$phone = sanitize($input['phone'] ?? '');
 $address = sanitize($input['address'] ?? '');
-$policiesAccepted = !empty($input['policies']);
 
-if (!$name || !$surname || !$email || !$address) {
+if (!$name || !$surname || !$email || !$phone || !$address) {
     jsonResponse(['error' => 'All fields are required.'], 400);
-}
-if (!$policiesAccepted) {
-    jsonResponse(['error' => 'You must accept the examination policies.'], 400);
 }
 
 $ip = getClientIP();
@@ -43,21 +40,21 @@ try {
 
     if ($existing) {
         $stmt = $db->prepare("UPDATE students SET
-            name=?, surname=?, address=?, ip_address=?, user_agent=?,
+            name=?, surname=?, phone=?, address=?, ip_address=?, user_agent=?,
             browser=?, device=?, os=?, screen_resolution=?, language=?,
             timezone=?, policies_accepted=1, session_token=?, is_online=1,
             last_activity=datetime('now') WHERE id=?");
-        $stmt->execute([$name, $surname, $address, $ip, $userAgent,
+        $stmt->execute([$name, $surname, $phone, $address, $ip, $userAgent,
             $parsed['browser'], $parsed['device'], $parsed['os'],
             $screenRes, $language, $timezone, $token, $existing['id']]);
         $studentId = $existing['id'];
         logActivity($studentId, 're-registered', "Re-registered from IP: $ip");
     } else {
         $stmt = $db->prepare("INSERT INTO students
-            (name,surname,email,address,ip_address,user_agent,browser,device,os,
+            (name,surname,email,phone,address,ip_address,user_agent,browser,device,os,
              screen_resolution,language,timezone,policies_accepted,session_token,is_online,last_activity)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,1,?,1,datetime('now'))");
-        $stmt->execute([$name, $surname, $email, $address, $ip, $userAgent,
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,1,?,1,datetime('now'))");
+        $stmt->execute([$name, $surname, $email, $phone, $address, $ip, $userAgent,
             $parsed['browser'], $parsed['device'], $parsed['os'],
             $screenRes, $language, $timezone, $token]);
         $studentId = $db->lastInsertId();
