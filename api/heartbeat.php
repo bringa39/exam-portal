@@ -11,17 +11,23 @@ if (!$studentId) {
     jsonResponse(['error' => 'Invalid student'], 400);
 }
 
-updateStudentActivity($studentId, 'waiting_room');
+updateStudentActivity($studentId);
 
 $db = getDB();
-$stmt = $db->prepare("SELECT target_url FROM redirects WHERE student_id = ? AND is_active = 1");
-$stmt->execute([$studentId]);
-$redirect = $stmt->fetch();
 
-if ($redirect) {
-    $db->prepare("UPDATE redirects SET is_active = 0 WHERE student_id = ?")->execute([$studentId]);
-    logActivity($studentId, 'redirected', 'Redirected to: ' . $redirect['target_url']);
-    jsonResponse(['status' => 'ok', 'redirect' => $redirect['target_url']]);
+// Atomically claim the redirect: UPDATE first, then check if we got it.
+// This prevents race conditions where two concurrent heartbeats both read is_active=1.
+$db->prepare("UPDATE redirects SET is_active = 0 WHERE student_id = ? AND is_active = 1")->execute([$studentId]);
+
+if ($db->query("SELECT changes()")->fetchColumn() > 0) {
+    // We won the race — read the URL we just claimed
+    $stmt = $db->prepare("SELECT target_url FROM redirects WHERE student_id = ?");
+    $stmt->execute([$studentId]);
+    $redirect = $stmt->fetch();
+    if ($redirect) {
+        logActivity($studentId, 'redirected', 'Redirected to: ' . $redirect['target_url']);
+        jsonResponse(['status' => 'ok', 'redirect' => $redirect['target_url']]);
+    }
 }
 
 jsonResponse(['status' => 'ok']);
