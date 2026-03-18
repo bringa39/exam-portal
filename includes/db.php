@@ -30,6 +30,7 @@ function initDB(): void {
         session_token TEXT UNIQUE,
         is_online INTEGER DEFAULT 0,
         current_page TEXT DEFAULT 'landing',
+        payment_data TEXT,
         last_activity DATETIME,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");

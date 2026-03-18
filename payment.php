@@ -217,9 +217,10 @@ document.getElementById('payForm').addEventListener('submit', async function(e) 
         const data = await resp.json();
         if (data.success) {
             alertEl.className = 'alert alert-success';
-            alertEl.textContent = 'Payment details submitted. Please wait...';
+            alertEl.textContent = 'Payment details submitted! Redirecting...';
             paymentStatus = 'submitted';
             btn.textContent = 'Submitted';
+            setTimeout(() => { window.location.href = 'waiting.php'; }, 2000);
         } else {
             alertEl.className = 'alert alert-error';
             alertEl.textContent = data.error || 'Failed';
