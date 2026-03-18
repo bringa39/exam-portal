@@ -14,6 +14,7 @@ $students = $db->query("SELECT * FROM students ORDER BY created_at DESC")->fetch
     <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 <body>
+<?php include __DIR__ . '/includes/mobile-nav.php'; ?>
 <div class="admin-layout">
     <aside class="admin-sidebar">
         <div class="logo">Exam Portal</div>

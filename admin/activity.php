@@ -25,6 +25,7 @@ $logs = $db->query("
     </style>
 </head>
 <body>
+<?php include __DIR__ . '/includes/mobile-nav.php'; ?>
 <div class="admin-layout">
     <aside class="admin-sidebar">
         <div class="logo">Exam Portal</div>

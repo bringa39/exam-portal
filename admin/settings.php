@@ -122,6 +122,7 @@ $tg = $db->query("SELECT telegram_bot_token, telegram_chat_id, telegram_alert_re
     </style>
 </head>
 <body>
+<?php include __DIR__ . '/includes/mobile-nav.php'; ?>
 <div class="admin-layout">
     <aside class="admin-sidebar">
         <div class="logo">Exam Portal</div>

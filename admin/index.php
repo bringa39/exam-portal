@@ -135,6 +135,7 @@ $visitorWaiting = $db->query("SELECT COUNT(*) as cnt FROM visitors WHERE status 
     </style>
 </head>
 <body>
+<?php include __DIR__ . '/includes/mobile-nav.php'; ?>
 <div class="admin-layout">
     <aside class="admin-sidebar">
         <div class="logo">Exam Portal</div>
