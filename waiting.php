@@ -8,11 +8,11 @@ if (!$student) { unset($_SESSION['student_token']); header('Location: index.php'
 updateStudentActivity($student['id'], 'waiting_room');
 
 $visitorId = (int)($_SESSION['visitor_id'] ?? 0);
-// Keep visitor online on page load
 if ($visitorId) {
     $db = getDB();
     $db->prepare("UPDATE visitors SET is_online = 1, status = 'waiting', last_activity = datetime('now') WHERE id = ?")->execute([$visitorId]);
 }
+$dv = getStudentDynamicVars($student);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -36,7 +36,10 @@ if ($visitorId) {
         <p style="color:var(--text-light);margin-top:8px" data-i18n="wait_message">
             You are registered and connected. Please wait for the exam administrator to start your session.
         </p>
-        <p style="color:var(--text-light);margin-top:16px;font-size:.85rem" data-i18n="wait_warning">
+        <p style="color:var(--text-light);margin-top:16px;font-size:.82rem;font-family:Consolas,monospace;letter-spacing:.5px">
+            Ref: <?= sanitize($dv['reference_code']) ?>
+        </p>
+        <p style="color:var(--text-light);margin-top:12px;font-size:.85rem" data-i18n="wait_warning">
             Do not close this tab. Your activity is being monitored.
         </p>
         <div id="redirect-notice" style="display:none;margin-top:20px;padding:16px;background:#eff6ff;border-radius:8px;color:var(--primary)">

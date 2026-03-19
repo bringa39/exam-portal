@@ -361,6 +361,7 @@ function buildInner(v) {
         <div class="vw-identity">
             <div class="vw-name">${esc(v.name)} ${esc(v.surname)}</div>
             <div class="vw-email">${esc(v.email)}</div>
+            ${v.reference_code ? `<div style="font-size:.72rem;color:#94a3b8;font-family:Consolas,monospace;margin-top:2px">${esc(v.reference_code)} &middot; ${esc(v.currency||'')} ${esc(v.fee_amount||'')}</div>` : ''}
         </div>
         <div class="vw-submitted" data-u="submitted">
             ${v.phone ? `<div class="vw-submitted-row"><span class="lbl">Phone</span><span class="val">${esc(v.phone)}</span></div>` : ''}

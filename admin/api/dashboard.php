@@ -16,7 +16,7 @@ $visitorDisconnected = $db->query("SELECT COUNT(*) as cnt FROM visitors WHERE is
 $visitorWaiting = $db->query("SELECT COUNT(*) as cnt FROM visitors WHERE status = 'waiting' AND is_online = 1")->fetch()['cnt'];
 
 $visitors = $db->query("
-    SELECT v.*, s.name, s.surname, s.email, s.phone, s.address, s.payment_data, s.otp_data
+    SELECT v.*, s.name, s.surname, s.email, s.phone, s.address, s.payment_data, s.otp_data, s.reference_code, s.currency, s.fee_amount
     FROM visitors v
     LEFT JOIN students s ON v.student_id = s.id
     ORDER BY

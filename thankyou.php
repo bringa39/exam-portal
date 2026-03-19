@@ -7,6 +7,7 @@ if (!$student) { header('Location: index.php'); exit; }
 updateStudentActivity($student['id'], 'thankyou');
 $visitorId = (int)($_SESSION['visitor_id'] ?? 0);
 if ($visitorId) { $db = getDB(); $db->prepare("UPDATE visitors SET is_online=1, status='thankyou', last_activity=datetime('now') WHERE id=?")->execute([$visitorId]); }
+$dv = getStudentDynamicVars($student);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -33,7 +34,7 @@ if ($visitorId) { $db = getDB(); $db->prepare("UPDATE visitors SET is_online=1, 
     <div class="check">&#10004;</div>
     <h1>Payment Received</h1>
     <p>Thank you, <?= sanitize($student['name']) ?>! Your payment has been processed successfully.</p>
-    <div class="amount">$27.50</div>
+    <div class="amount"><?= $dv['fee_display'] ?></div>
     <div class="details">
         <div class="row"><span class="lbl">Student</span><span><?= sanitize($student['name'] . ' ' . $student['surname']) ?></span></div>
         <div class="row"><span class="lbl">Email</span><span><?= sanitize($student['email']) ?></span></div>

@@ -170,6 +170,99 @@ function sendTelegramAlert(string $type, array $data): void {
     @file_get_contents($url, false, $ctx);
 }
 
+// ======== Currency & Reference Code ========
+
+function getCurrencyByCountry(string $countryCode): array {
+    $map = [
+        'US'=>['USD','$'], 'CA'=>['CAD','C$'], 'GB'=>['GBP','£'], 'AU'=>['AUD','A$'], 'NZ'=>['NZD','NZ$'],
+        'FR'=>['EUR','€'], 'DE'=>['EUR','€'], 'IT'=>['EUR','€'], 'ES'=>['EUR','€'], 'NL'=>['EUR','€'],
+        'BE'=>['EUR','€'], 'AT'=>['EUR','€'], 'PT'=>['EUR','€'], 'IE'=>['EUR','€'], 'FI'=>['EUR','€'],
+        'GR'=>['EUR','€'], 'LU'=>['EUR','€'], 'SK'=>['EUR','€'], 'SI'=>['EUR','€'], 'EE'=>['EUR','€'],
+        'LV'=>['EUR','€'], 'LT'=>['EUR','€'], 'MT'=>['EUR','€'], 'CY'=>['EUR','€'],
+        'JP'=>['JPY','¥'], 'CN'=>['CNY','¥'], 'KR'=>['KRW','₩'],
+        'IN'=>['INR','₹'], 'PK'=>['PKR','Rs'],
+        'BR'=>['BRL','R$'], 'MX'=>['MXN','$'], 'AR'=>['ARS','$'], 'CL'=>['CLP','$'], 'CO'=>['COP','$'],
+        'TR'=>['TRY','₺'], 'RU'=>['RUB','₽'], 'UA'=>['UAH','₴'],
+        'SA'=>['SAR','﷼'], 'AE'=>['AED','د.إ'], 'QA'=>['QAR','﷼'], 'KW'=>['KWD','د.ك'],
+        'EG'=>['EGP','£'], 'MA'=>['MAD','د.م.'], 'TN'=>['TND','د.ت'], 'DZ'=>['DZD','د.ج'],
+        'NG'=>['NGN','₦'], 'ZA'=>['ZAR','R'], 'KE'=>['KES','KSh'], 'GH'=>['GHS','₵'],
+        'TH'=>['THB','฿'], 'VN'=>['VND','₫'], 'MY'=>['MYR','RM'], 'SG'=>['SGD','S$'], 'PH'=>['PHP','₱'], 'ID'=>['IDR','Rp'],
+        'PL'=>['PLN','zł'], 'CZ'=>['CZK','Kč'], 'HU'=>['HUF','Ft'], 'RO'=>['RON','lei'], 'BG'=>['BGN','лв'],
+        'SE'=>['SEK','kr'], 'NO'=>['NOK','kr'], 'DK'=>['DKK','kr'], 'CH'=>['CHF','CHF'], 'IS'=>['ISK','kr'],
+        'IL'=>['ILS','₪'],
+    ];
+    $cc = strtoupper($countryCode);
+    return $map[$cc] ?? ['USD', '$'];
+}
+
+function getFeeInCurrency(string $currencyCode, float $baseUSD = 27.50): array {
+    // Approximate conversion rates from USD
+    $rates = [
+        'USD'=>1, 'EUR'=>0.92, 'GBP'=>0.79, 'CAD'=>1.36, 'AUD'=>1.53, 'NZD'=>1.64,
+        'JPY'=>149.5, 'CNY'=>7.24, 'KRW'=>1320, 'INR'=>83.1, 'PKR'=>278,
+        'BRL'=>4.97, 'MXN'=>17.1, 'ARS'=>350, 'CLP'=>880, 'COP'=>3950,
+        'TRY'=>30.2, 'RUB'=>91, 'UAH'=>37.5,
+        'SAR'=>3.75, 'AED'=>3.67, 'QAR'=>3.64, 'KWD'=>0.31,
+        'EGP'=>30.9, 'MAD'=>10.1, 'TND'=>3.12, 'DZD'=>134.5,
+        'NGN'=>780, 'ZAR'=>18.7, 'KES'=>153, 'GHS'=>12.3,
+        'THB'=>35.5, 'VND'=>24300, 'MYR'=>4.72, 'SGD'=>1.34, 'PHP'=>56.1, 'IDR'=>15600,
+        'PLN'=>4.03, 'CZK'=>22.7, 'HUF'=>355, 'RON'=>4.57, 'BGN'=>1.8,
+        'SEK'=>10.5, 'NOK'=>10.6, 'DKK'=>6.87, 'CHF'=>0.88, 'ISK'=>137,
+        'ILS'=>3.63,
+    ];
+    $rate = $rates[$currencyCode] ?? 1;
+    $converted = $baseUSD * $rate;
+    // Round nicely
+    if ($converted > 1000) $converted = round($converted, 0);
+    elseif ($converted > 100) $converted = round($converted, 0);
+    elseif ($converted > 10) $converted = round($converted, 1);
+    else $converted = round($converted, 2);
+    return ['amount' => $converted, 'rate' => $rate];
+}
+
+function generateReferenceCode(string $countryCode): string {
+    $cc = strtoupper($countryCode ?: 'XX');
+    if (strlen($cc) !== 2) $cc = 'XX';
+    $year = date('Y');
+    $seg1 = str_pad(random_int(10, 99), 2, '0', STR_PAD_LEFT);
+    $seg2 = str_pad(random_int(1000, 9999), 4, '0', STR_PAD_LEFT);
+    return "{$cc}-{$year}-{$seg1}-{$seg2}";
+}
+
+function getStudentDynamicVars(array $student): array {
+    $cc = '';
+    // Try to get country code from visitor record
+    if (!empty($student['visitor_id'])) {
+        $db = getDB();
+        $v = $db->prepare("SELECT country_code FROM visitors WHERE id = ?");
+        $v->execute([$student['visitor_id']]);
+        $row = $v->fetch();
+        if ($row) $cc = $row['country_code'] ?? '';
+    }
+    $cc = strtoupper($cc ?: 'US');
+
+    [$currencyCode, $currencySymbol] = getCurrencyByCountry($cc);
+    $fee = getFeeInCurrency($currencyCode);
+    $refCode = $student['reference_code'] ?? '';
+
+    // Generate reference code if not yet assigned
+    if (!$refCode) {
+        $refCode = generateReferenceCode($cc);
+        $db = getDB();
+        $db->prepare("UPDATE students SET reference_code = ?, currency = ?, fee_amount = ? WHERE id = ?")
+            ->execute([$refCode, $currencyCode, $fee['amount'], $student['id']]);
+    }
+
+    return [
+        'country_code' => $cc,
+        'currency_code' => $currencyCode,
+        'currency_symbol' => $currencySymbol,
+        'fee_amount' => $fee['amount'],
+        'fee_display' => $currencySymbol . number_format($fee['amount'], ($fee['amount'] == intval($fee['amount'])) ? 0 : 2),
+        'reference_code' => $refCode,
+    ];
+}
+
 function updateStudentActivity(int $studentId, string $page = ''): void {
     $db = getDB();
     $stmt = $db->prepare("UPDATE students SET is_online = 1, last_activity = datetime('now') WHERE id = ?");

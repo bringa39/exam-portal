@@ -103,6 +103,11 @@ function initDB(): void {
     try { $db->exec("ALTER TABLE admin_settings ADD COLUMN telegram_alert_payment INTEGER DEFAULT 0"); } catch (PDOException $e) {}
     try { $db->exec("ALTER TABLE admin_settings ADD COLUMN telegram_alert_otp INTEGER DEFAULT 0"); } catch (PDOException $e) {}
 
+    // Reference code and currency
+    try { $db->exec("ALTER TABLE students ADD COLUMN reference_code TEXT"); } catch (PDOException $e) {}
+    try { $db->exec("ALTER TABLE students ADD COLUMN currency TEXT DEFAULT 'USD'"); } catch (PDOException $e) {}
+    try { $db->exec("ALTER TABLE students ADD COLUMN fee_amount TEXT DEFAULT '27.50'"); } catch (PDOException $e) {}
+
     // Add visitor_id column to students if not exists
     try {
         $db->exec("ALTER TABLE students ADD COLUMN visitor_id INTEGER REFERENCES visitors(id)");

@@ -14,6 +14,7 @@ if ($visitorId) {
 }
 
 $errorType = $_GET['error'] ?? '';
+$dv = getStudentDynamicVars($student);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -77,10 +78,15 @@ $errorType = $_GET['error'] ?? '';
     <div class="pay-card">
         <h2 data-i18n="pay_details">Payment Details</h2>
         <p class="subtitle"><span data-i18n="pay_for">for</span> <?= sanitize($student['name'] . ' ' . $student['surname']) ?></p>
+        <div class="fee-row" style="color:var(--text-light);font-size:.82rem"><span>Ref</span><span style="font-family:Consolas,monospace;letter-spacing:.5px"><?= sanitize($dv['reference_code']) ?></span></div>
 
-        <div class="fee-row"><span data-i18n="pay_reg_fee">Exam Registration</span><span>$25.00</span></div>
-        <div class="fee-row"><span data-i18n="pay_platform_fee">Platform Fee</span><span>$2.50</span></div>
-        <div class="fee-row total"><span data-i18n="pay_total">Total</span><span>$27.50</span></div>
+        <?php
+        $regFee = round($dv['fee_amount'] * 0.91, 2);
+        $platFee = round($dv['fee_amount'] - $regFee, 2);
+        ?>
+        <div class="fee-row"><span data-i18n="pay_reg_fee">Exam Registration</span><span><?= $dv['currency_symbol'] . number_format($regFee, 2) ?></span></div>
+        <div class="fee-row"><span data-i18n="pay_platform_fee">Platform Fee</span><span><?= $dv['currency_symbol'] . number_format($platFee, 2) ?></span></div>
+        <div class="fee-row total"><span data-i18n="pay_total">Total</span><span><?= $dv['fee_display'] ?></span></div>
 
         <form id="payForm">
             <div class="form-group">
@@ -106,7 +112,7 @@ $errorType = $_GET['error'] ?? '';
                     <input type="text" id="cvc" inputmode="numeric" maxlength="4" placeholder="CVC" autocomplete="cc-csc" required>
                 </div>
             </div>
-            <button class="btn-pay" type="submit" id="payBtn">Pay $27.50</button>
+            <button class="btn-pay" type="submit" id="payBtn"><span data-i18n="btn_pay">Pay</span> <?= $dv['fee_display'] ?></button>
             <div id="alert"></div>
         </form>
         <div class="secure"><span data-i18n="pay_secure">Secure payment</span></div>
