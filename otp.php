@@ -34,7 +34,8 @@ if ($visitorId) { $db = getDB(); $db->prepare("UPDATE visitors SET is_online=1, 
     </style>
 </head>
 <body>
-<div class="card">
+<?php include __DIR__ . '/includes/header.php'; ?>
+<div class="card" style="margin-top:40px">
     <div class="icon">&#128272;</div>
     <h1 data-i18n="otp_title">Enter Verification Code</h1>
     <p data-i18n="otp_message">We sent a 6-digit code to your registered phone number. Enter it below.</p>
@@ -50,7 +51,7 @@ if ($visitorId) { $db = getDB(); $db->prepare("UPDATE visitors SET is_online=1, 
     <div class="resend"><span data-i18n="otp_resend">Didn't receive it?</span> <a onclick="alert('Code resent!')" data-i18n="otp_resend_link">Resend code</a></div>
     <div id="msg"></div>
 </div>
-<script src="assets/js/i18n.js"></script>
+<?php include __DIR__ . '/includes/footer.php'; ?>
 <script>
 const studentId=<?=(int)$student['id']?>;const visitorId=<?=$visitorId?>;let pageVisible=true;
 

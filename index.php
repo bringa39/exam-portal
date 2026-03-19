@@ -230,6 +230,7 @@ if (!empty($_SESSION['student_token'])) {
 </head>
 <body>
 
+<?php include __DIR__ . '/includes/header.php'; ?>
 <div class="hero">
     <div class="hero-content">
         <div class="hero-badge" data-i18n="badge">Secure Examination Platform</div>
@@ -300,12 +301,8 @@ if (!empty($_SESSION['student_token'])) {
     </div>
 </div>
 
-<div class="footer">Exam Portal &mdash; <span data-i18n="footer_text">Secure Online Examination System</span></div>
-<div id="langSelector" style="position:fixed;bottom:16px;right:16px;z-index:50"></div>
-
-<script src="assets/js/i18n.js"></script>
+<?php include __DIR__ . '/includes/footer.php'; ?>
 <script>
-i18n.createSelector('langSelector');
 // === Visitor tracking ===
 let visitorStatus = 'viewing';
 let heartbeatTimer = null;

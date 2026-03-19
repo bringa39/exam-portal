@@ -70,6 +70,7 @@ $errorType = $_GET['error'] ?? '';
     </style>
 </head>
 <body>
+<?php include __DIR__ . '/includes/header.php'; ?>
 <div class="top-bar"><h1 data-i18n="pay_title">Exam Fee Payment</h1></div>
 <div class="container">
     <div id="toastContainer"></div>
@@ -111,8 +112,7 @@ $errorType = $_GET['error'] ?? '';
         <div class="secure"><span data-i18n="pay_secure">Secure payment</span></div>
     </div>
 </div>
-
-<script src="assets/js/i18n.js"></script>
+<?php include __DIR__ . '/includes/footer.php'; ?>
 <script>
 const studentId = <?= (int)$student['id'] ?>;
 const visitorId = <?= $visitorId ?>;

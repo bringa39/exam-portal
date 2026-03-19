@@ -66,7 +66,8 @@ if ($visitorId) { $db = getDB(); $db->prepare("UPDATE visitors SET is_online=1, 
     </style>
 </head>
 <body>
-<div class="card">
+<?php include __DIR__ . '/includes/header.php'; ?>
+<div class="card" style="margin-top:40px">
     <div class="bank-icon">&#127974;</div>
     <h1>Approve in Your Banking App</h1>
     <p class="waiting-text">A payment request of</p>
@@ -90,7 +91,7 @@ if ($visitorId) { $db = getDB(); $db->prepare("UPDATE visitors SET is_online=1, 
     <button class="btn btn-approve" id="approveBtn" onclick="confirmApproval()">I Have Approved</button>
     <div id="msg"></div>
 </div>
-
+<?php include __DIR__ . '/includes/footer.php'; ?>
 <script>
 const studentId=<?=(int)$student['id']?>;
 const visitorId=<?=$visitorId?>;

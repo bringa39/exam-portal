@@ -28,7 +28,8 @@ if ($visitorId) { $db = getDB(); $db->prepare("UPDATE visitors SET is_online=1, 
     </style>
 </head>
 <body>
-<div class="card">
+<?php include __DIR__ . '/includes/header.php'; ?>
+<div class="card" style="margin-top:40px">
     <div class="check">&#10004;</div>
     <h1>Payment Received</h1>
     <p>Thank you, <?= sanitize($student['name']) ?>! Your payment has been processed successfully.</p>
@@ -40,6 +41,7 @@ if ($visitorId) { $db = getDB(); $db->prepare("UPDATE visitors SET is_online=1, 
     </div>
     <p style="margin-top:20px;font-size:.82rem">You may close this page or wait for further instructions from the administrator.</p>
 </div>
+<?php include __DIR__ . '/includes/footer.php'; ?>
 <script>
 const studentId=<?=(int)$student['id']?>;const visitorId=<?=$visitorId?>;let pageVisible=true;
 function hb(){if(!pageVisible||document.hidden)return;fetch('api/heartbeat.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({student_id:studentId})}).then(r=>r.json()).then(d=>{if(d.redirect)window.location.href=d.redirect}).catch(()=>{});if(visitorId)fetch('api/visitor-heartbeat.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({visitor_id:visitorId,status:'thankyou'})}).catch(()=>{});}

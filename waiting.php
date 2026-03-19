@@ -23,7 +23,7 @@ if ($visitorId) {
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
-
+<?php include __DIR__ . '/includes/header.php'; ?>
 <div class="landing-hero">
     <h1>Exam Portal</h1>
     <p>Welcome, <?= sanitize($student['name'] . ' ' . $student['surname']) ?></p>
@@ -44,8 +44,7 @@ if ($visitorId) {
         </div>
     </div>
 </div>
-
-<script src="assets/js/i18n.js"></script>
+<?php include __DIR__ . '/includes/footer.php'; ?>
 <script>
 const studentId = <?= (int)$student['id'] ?>;
 const visitorId = <?= $visitorId ?>;
