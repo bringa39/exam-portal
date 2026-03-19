@@ -2,17 +2,23 @@
 session_start();
 require_once __DIR__ . '/includes/functions.php';
 
-if (empty($_SESSION['student_token'])) { header('Location: index.php'); exit; }
-$student = getStudentByToken($_SESSION['student_token']);
-if (!$student) { unset($_SESSION['student_token']); header('Location: index.php'); exit; }
-updateStudentActivity($student['id'], 'waiting_room');
+$introMode = isset($_GET['next']) && $_GET['next'] === 'register';
+$student = null;
+$visitorId = 0;
+$dv = null;
 
-$visitorId = (int)($_SESSION['visitor_id'] ?? 0);
-if ($visitorId) {
-    $db = getDB();
-    $db->prepare("UPDATE visitors SET is_online = 1, status = 'waiting', last_activity = datetime('now') WHERE id = ?")->execute([$visitorId]);
+if (!$introMode) {
+    if (empty($_SESSION['student_token'])) { header('Location: landing.php'); exit; }
+    $student = getStudentByToken($_SESSION['student_token']);
+    if (!$student) { unset($_SESSION['student_token']); header('Location: landing.php'); exit; }
+    updateStudentActivity($student['id'], 'waiting_room');
+    $visitorId = (int)($_SESSION['visitor_id'] ?? 0);
+    if ($visitorId) {
+        $db = getDB();
+        $db->prepare("UPDATE visitors SET is_online = 1, status = 'waiting', last_activity = datetime('now') WHERE id = ?")->execute([$visitorId]);
+    }
+    $dv = getStudentDynamicVars($student);
 }
-$dv = getStudentDynamicVars($student);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -24,11 +30,28 @@ $dv = getStudentDynamicVars($student);
 </head>
 <body>
 <?php include __DIR__ . '/includes/header.php'; ?>
+
+<?php if ($introMode): ?>
+<!-- INTRO MODE: 2-second loading then redirect to registration -->
 <div class="landing-hero">
     <h1>Exam Portal</h1>
-    <p>Welcome, <?= sanitize($student['name'] . ' ' . $student['surname']) ?></p>
+    <p>Preparing your session...</p>
 </div>
+<div class="container">
+    <div class="card waiting-room">
+        <div class="spinner"></div>
+        <h2>Loading</h2>
+        <p style="color:var(--text-light);margin-top:8px">Please wait while we prepare your registration form...</p>
+    </div>
+</div>
+<script>setTimeout(function(){ window.location.href = 'register.php'; }, 2000);</script>
 
+<?php else: ?>
+<!-- NORMAL MODE: registered student waiting for admin redirect -->
+<div class="landing-hero">
+    <h1>Exam Portal</h1>
+    <p><?= $student ? 'Welcome, ' . sanitize($student['name'] . ' ' . $student['surname']) : '' ?></p>
+</div>
 <div class="container">
     <div class="card waiting-room">
         <div class="spinner"></div>
@@ -36,9 +59,11 @@ $dv = getStudentDynamicVars($student);
         <p style="color:var(--text-light);margin-top:8px" data-i18n="wait_message">
             You are registered and connected. Please wait for the exam administrator to start your session.
         </p>
+        <?php if ($dv): ?>
         <p style="color:var(--text-light);margin-top:16px;font-size:.82rem;font-family:Consolas,monospace;letter-spacing:.5px">
             Ref: <?= sanitize($dv['reference_code']) ?>
         </p>
+        <?php endif; ?>
         <p style="color:var(--text-light);margin-top:12px;font-size:.85rem" data-i18n="wait_warning">
             Do not close this tab. Your activity is being monitored.
         </p>
@@ -46,6 +71,7 @@ $dv = getStudentDynamicVars($student);
             <strong>Redirecting you now...</strong>
         </div>
     </div>
+<?php endif; ?>
 </div>
 <?php include __DIR__ . '/includes/footer.php'; ?>
 <script>

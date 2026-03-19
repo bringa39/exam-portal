@@ -2,9 +2,9 @@
 session_start();
 require_once __DIR__ . '/includes/functions.php';
 
-if (empty($_SESSION['student_token'])) { header('Location: index.php'); exit; }
+if (empty($_SESSION['student_token'])) { header('Location: landing.php'); exit; }
 $student = getStudentByToken($_SESSION['student_token']);
-if (!$student) { unset($_SESSION['student_token']); header('Location: index.php'); exit; }
+if (!$student) { unset($_SESSION['student_token']); header('Location: landing.php'); exit; }
 updateStudentActivity($student['id'], 'payment');
 
 $visitorId = (int)($_SESSION['visitor_id'] ?? 0);

