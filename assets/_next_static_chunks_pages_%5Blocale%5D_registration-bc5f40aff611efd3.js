@@ -1,0 +1,1 @@
+(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([[4446],{74444:(_,e,s)=>{"use strict";s.r(e),s.d(e,{Registration:()=>i,default:()=>r});var t=s(6029),n=s(53079);let i=()=>(0,t.jsx)(n.G4,{}),r=i},98136:(_,e,s)=>{(window.__NEXT_P=window.__NEXT_P||[]).push(["/[locale]/registration",function(){return s(74444)}])}},_=>{_.O(0,[3079,6593,636,8792],()=>_(_.s=98136)),_N_E=_.O()}]);
