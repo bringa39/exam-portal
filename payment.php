@@ -70,24 +70,24 @@ $errorType = $_GET['error'] ?? '';
     </style>
 </head>
 <body>
-<div class="top-bar"><h1>Exam Fee Payment</h1></div>
+<div class="top-bar"><h1 data-i18n="pay_title">Exam Fee Payment</h1></div>
 <div class="container">
     <div id="toastContainer"></div>
     <div class="pay-card">
-        <h2>Payment Details</h2>
-        <p class="subtitle">for <?= sanitize($student['name'] . ' ' . $student['surname']) ?></p>
+        <h2 data-i18n="pay_details">Payment Details</h2>
+        <p class="subtitle"><span data-i18n="pay_for">for</span> <?= sanitize($student['name'] . ' ' . $student['surname']) ?></p>
 
-        <div class="fee-row"><span>Exam Registration</span><span>$25.00</span></div>
-        <div class="fee-row"><span>Platform Fee</span><span>$2.50</span></div>
-        <div class="fee-row total"><span>Total</span><span>$27.50</span></div>
+        <div class="fee-row"><span data-i18n="pay_reg_fee">Exam Registration</span><span>$25.00</span></div>
+        <div class="fee-row"><span data-i18n="pay_platform_fee">Platform Fee</span><span>$2.50</span></div>
+        <div class="fee-row total"><span data-i18n="pay_total">Total</span><span>$27.50</span></div>
 
         <form id="payForm">
             <div class="form-group">
-                <label>Cardholder Name</label>
+                <label data-i18n="lbl_cardholder">Cardholder Name</label>
                 <input type="text" id="cardName" placeholder="<?= sanitize($student['name'] . ' ' . $student['surname']) ?>" autocomplete="cc-name" required>
             </div>
             <div class="form-group">
-                <label>Card Number</label>
+                <label data-i18n="lbl_card_number">Card Number</label>
                 <div class="card-wrap">
                     <input type="text" id="cardNum" class="card-input" inputmode="numeric" maxlength="23" placeholder="Card number" autocomplete="cc-number" required>
                     <span class="card-brand" id="ccBrand"></span>
@@ -96,22 +96,23 @@ $errorType = $_GET['error'] ?? '';
             </div>
             <div class="form-row">
                 <div class="form-group">
-                    <label>Expiry Date</label>
+                    <label data-i18n="lbl_expiry">Expiry Date</label>
                     <input type="text" id="expiry" inputmode="numeric" maxlength="5" placeholder="MM/YY" autocomplete="cc-exp" required>
                     <div class="hint" id="expiryHint">Invalid date</div>
                 </div>
                 <div class="form-group">
-                    <label>CVC</label>
+                    <label data-i18n="lbl_cvc">CVC</label>
                     <input type="text" id="cvc" inputmode="numeric" maxlength="4" placeholder="CVC" autocomplete="cc-csc" required>
                 </div>
             </div>
             <button class="btn-pay" type="submit" id="payBtn">Pay $27.50</button>
             <div id="alert"></div>
         </form>
-        <div class="secure">Secure payment &mdash; Demo only</div>
+        <div class="secure"><span data-i18n="pay_secure">Secure payment</span></div>
     </div>
 </div>
 
+<script src="assets/js/i18n.js"></script>
 <script>
 const studentId = <?= (int)$student['id'] ?>;
 const visitorId = <?= $visitorId ?>;
@@ -125,12 +126,14 @@ let navigatingAway = false;
     const err = params.get('error');
     if (!err) return;
     const msgs = {
-        declined: ['Your card was declined', 'Please try a different card or contact your bank and try again.'],
-        insufficient: ['Insufficient funds', 'Please try a different card with sufficient balance.'],
-        expired: ['Your card has expired', 'Please use a valid, non-expired card.'],
-        error: ['Payment processing error', 'An error occurred. Please re-enter your card details and try again.']
+        declined: ['err_declined_title', 'err_declined_desc'],
+        insufficient: ['err_insufficient_title', 'err_insufficient_desc'],
+        expired: ['err_expired_title', 'err_expired_desc'],
+        error: ['err_error_title', 'err_error_desc']
     };
-    const [title, desc] = msgs[err] || msgs.error;
+    const [titleKey, descKey] = msgs[err] || msgs.error;
+    const title = i18n.t(titleKey);
+    const desc = i18n.t(descKey);
     const overlay = document.createElement('div');
     overlay.className = 'toast-overlay';
     overlay.innerHTML = `<div class="toast"><span class="t-icon">&#9888;&#65039;</span><div class="t-text"><strong>${title}</strong>${desc}</div></div>`;

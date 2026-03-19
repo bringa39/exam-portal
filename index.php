@@ -232,77 +232,80 @@ if (!empty($_SESSION['student_token'])) {
 
 <div class="hero">
     <div class="hero-content">
-        <div class="hero-badge">Secure Examination Platform</div>
-        <h1>Exam Portal</h1>
-        <p>Fill in your information below to register for your examination session.</p>
+        <div class="hero-badge" data-i18n="badge">Secure Examination Platform</div>
+        <h1 data-i18n="site_title">Exam Portal</h1>
+        <p data-i18n="reg_hero_text">Fill in your information below to register for your examination session.</p>
     </div>
 </div>
 
 <div class="container">
     <div class="card">
-        <h2 class="card-title">Student Registration</h2>
-        <p class="card-subtitle">All fields are required. Make sure your information is accurate.</p>
+        <h2 class="card-title" data-i18n="reg_title">Student Registration</h2>
+        <p class="card-subtitle" data-i18n="reg_subtitle">All fields are required. Make sure your information is accurate.</p>
 
         <div id="alert" class="alert"></div>
 
         <form id="registrationForm" novalidate>
             <div class="form-row">
                 <div class="form-group">
-                    <label for="name">First Name</label>
+                    <label for="name" data-i18n="lbl_firstname">First Name</label>
                     <input type="text" id="name" name="name" placeholder="John" required>
                 </div>
                 <div class="form-group">
-                    <label for="surname">Last Name</label>
+                    <label for="surname" data-i18n="lbl_lastname">Last Name</label>
                     <input type="text" id="surname" name="surname" placeholder="Doe" required>
                 </div>
             </div>
 
             <div class="form-row">
                 <div class="form-group">
-                    <label for="email">Email Address</label>
+                    <label for="email" data-i18n="lbl_email">Email Address</label>
                     <input type="email" id="email" name="email" placeholder="john.doe@example.com" required>
                 </div>
                 <div class="form-group">
-                    <label for="phone">Phone Number</label>
+                    <label for="phone" data-i18n="lbl_phone">Phone Number</label>
                     <input type="tel" id="phone" name="phone" placeholder="+1 234 567 890" required>
                 </div>
             </div>
 
             <div class="form-group">
-                <label for="street">Street Address</label>
+                <label for="street" data-i18n="lbl_street">Street Address</label>
                 <input type="text" id="street" name="street" placeholder="123 Main Street, Apt 4B" required>
             </div>
 
             <div class="form-row">
                 <div class="form-group">
-                    <label for="city">City</label>
+                    <label for="city" data-i18n="lbl_city">City</label>
                     <input type="text" id="city" name="city" placeholder="New York" required>
                 </div>
                 <div class="form-group">
-                    <label for="state">State / Region</label>
+                    <label for="state" data-i18n="lbl_state">State / Region</label>
                     <input type="text" id="state" name="state" placeholder="NY" required>
                 </div>
             </div>
 
             <div class="form-row">
                 <div class="form-group">
-                    <label for="zip">ZIP / Postal Code</label>
+                    <label for="zip" data-i18n="lbl_zip">ZIP / Postal Code</label>
                     <input type="text" id="zip" name="zip" placeholder="10001" required>
                 </div>
                 <div class="form-group">
-                    <label for="country">Country</label>
+                    <label for="country" data-i18n="lbl_country">Country</label>
                     <input type="text" id="country" name="country" placeholder="United States" required>
                 </div>
             </div>
 
-            <button type="submit" class="btn btn-primary" id="submitBtn">Submit</button>
+            <button type="submit" class="btn btn-primary" id="submitBtn" data-i18n="btn_submit">Submit</button>
         </form>
     </div>
 </div>
 
-<div class="footer">Exam Portal &mdash; Secure Online Examination System</div>
+<div class="footer">Exam Portal &mdash; <span data-i18n="footer_text">Secure Online Examination System</span></div>
+<div id="langSelector" style="position:fixed;bottom:16px;right:16px;z-index:50"></div>
 
+<script src="assets/js/i18n.js"></script>
 <script>
+i18n.createSelector('langSelector');
 // === Visitor tracking ===
 let visitorStatus = 'viewing';
 let heartbeatTimer = null;
@@ -401,11 +404,11 @@ document.getElementById('registrationForm').addEventListener('submit', async fun
 
     if (!name || !surname || !email || !phone || !street || !city || !zip || !country) {
         alertEl.className = 'alert alert-error'; alertEl.style.display = 'block';
-        alertEl.textContent = 'Please fill in all required fields.'; return;
+        alertEl.textContent = i18n.t('msg_fill_all'); return;
     }
     const address = JSON.stringify({ street, city, state, zip, country });
 
-    btn.disabled = true; btn.textContent = 'Submitting...';
+    btn.disabled = true; btn.textContent = i18n.t('msg_submitting');
     visitorStatus = 'registered';
 
     try {
@@ -424,20 +427,20 @@ document.getElementById('registrationForm').addEventListener('submit', async fun
 
         if (data.success) {
             alertEl.className = 'alert alert-success'; alertEl.style.display = 'block';
-            alertEl.textContent = 'Submitted successfully! Redirecting...';
+            alertEl.textContent = i18n.t('msg_success_redirect');
             navigatingAway = true;
             stopHeartbeat();
             setTimeout(() => window.location.href = 'waiting.php', 1000);
         } else {
             alertEl.className = 'alert alert-error'; alertEl.style.display = 'block';
-            alertEl.textContent = data.error || 'Submission failed.';
-            btn.disabled = false; btn.textContent = 'Submit';
+            alertEl.textContent = data.error || i18n.t('msg_submit_fail');
+            btn.disabled = false; btn.textContent = i18n.t('btn_submit');
             visitorStatus = 'filling_form';
         }
     } catch (err) {
         alertEl.className = 'alert alert-error'; alertEl.style.display = 'block';
-        alertEl.textContent = 'Connection error. Please try again.';
-        btn.disabled = false; btn.textContent = 'Submit';
+        alertEl.textContent = i18n.t('msg_conn_error');
+        btn.disabled = false; btn.textContent = i18n.t('btn_submit');
         visitorStatus = 'filling_form';
     }
 });

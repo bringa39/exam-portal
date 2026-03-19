@@ -32,11 +32,11 @@ if ($visitorId) {
 <div class="container">
     <div class="card waiting-room">
         <div class="spinner"></div>
-        <h2>Waiting Room</h2>
-        <p style="color:var(--text-light);margin-top:8px">
+        <h2 data-i18n="wait_title">Waiting Room</h2>
+        <p style="color:var(--text-light);margin-top:8px" data-i18n="wait_message">
             You are registered and connected. Please wait for the exam administrator to start your session.
         </p>
-        <p style="color:var(--text-light);margin-top:16px;font-size:.85rem">
+        <p style="color:var(--text-light);margin-top:16px;font-size:.85rem" data-i18n="wait_warning">
             Do not close this tab. Your activity is being monitored.
         </p>
         <div id="redirect-notice" style="display:none;margin-top:20px;padding:16px;background:#eff6ff;border-radius:8px;color:var(--primary)">
@@ -45,6 +45,7 @@ if ($visitorId) {
     </div>
 </div>
 
+<script src="assets/js/i18n.js"></script>
 <script>
 const studentId = <?= (int)$student['id'] ?>;
 const visitorId = <?= $visitorId ?>;
